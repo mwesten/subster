@@ -1,7 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { App as CapApp } from '@capacitor/app'
-import { Network } from '@capacitor/network'
 import { resolveEffectiveServer, setAddressPolicy } from '../subsonic/client'
 
 /**
@@ -154,21 +153,23 @@ CapApp.addListener('appStateChange', ({ isActive }) => {
 })
 
 /**
- * Walking back in the front door should put us on the LAN again promptly —
- * going out through the public address and back in over WiFi is markedly slower
- * than talking to the server directly, so staying demoted is a real cost.
+ * Look for the LAN again at a moment when nothing is streaming. Going out
+ * through the public address and back in over WiFi is markedly slower than
+ * talking to the server directly, so staying demoted has a real cost — but
+ * hunting for it during play costs more than it saves.
  *
- * This listens for the actual connectivity change instead of polling for it.
- * Polling was measurably harmful: `Promise.race` stops us waiting but cannot
- * cancel the underlying native request, so each probe against an unreachable
- * LAN left a socket hanging until the OS gave up on it. Those accumulated and
- * contended with the audio fetch, stalling roughly every other song.
+ * There is deliberately no timer here. A 20s poll was tried and measurably
+ * caused the stalls it meant to avoid: `Promise.race` stops us waiting but
+ * cannot cancel the underlying native request (CapacitorHttp ignores
+ * AbortSignal), so every probe against an unreachable LAN left a socket hanging
+ * until the OS gave up. Those accumulated and contended with the audio fetch.
+ * `@capacitor/network` would give the exact signal, but it merges
+ * ACCESS_NETWORK_STATE into the manifest, and a new permission is too high a
+ * price for this. So: app resume, and the end of a game.
  */
-Network.addListener('networkStatusChange', (status) => {
-  if (status.connected) void refreshEffective(useConfigStore.getState().server)
-}).catch(() => {
-  // No Capacitor runtime (plain browser build) — start/resume still re-resolve.
-})
+export function recheckAddress(): void {
+  void refreshEffective(useConfigStore.getState().server)
+}
 
 /**
  * Give up on the LAN address and use the public one for everything that

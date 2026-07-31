@@ -17,7 +17,6 @@
     "@capacitor/android": "^6.2.1",
     "@capacitor/app": "^6.0.3",
     "@capacitor/core": "^6.2.1",
-    "@capacitor/network": "^6.0.4",
     "@capacitor/status-bar": "^6.0.3",
     "@jofr/capacitor-media-session": "^4.0.0",
     "blueimp-md5": "^2.19.0",
