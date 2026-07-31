@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { App as CapApp } from '@capacitor/app'
+import { Network } from '@capacitor/network'
 import { resolveEffectiveServer, setAddressPolicy } from '../subsonic/client'
 
 /**
@@ -157,19 +158,17 @@ CapApp.addListener('appStateChange', ({ isActive }) => {
  * going out through the public address and back in over WiFi is markedly slower
  * than talking to the server directly, so staying demoted is a real cost.
  *
- * Only runs while we are *not* on the LAN, never blocks anything, and can only
- * ever promote: resolveEffectiveServer moves us onto the local address purely
- * on the strength of a ping that just succeeded. Losing the LAN is detected the
- * other way round, by requests failing, so there is no probe in the hot path.
+ * This listens for the actual connectivity change instead of polling for it.
+ * Polling was measurably harmful: `Promise.race` stops us waiting but cannot
+ * cancel the underlying native request, so each probe against an unreachable
+ * LAN left a socket hanging until the OS gave up on it. Those accumulated and
+ * contended with the audio fetch, stalling roughly every other song.
  */
-const LAN_RECHECK_MS = 20_000
-
-setInterval(() => {
-  const { server, effective } = useConfigStore.getState()
-  if (!server?.localBaseUrl) return
-  if ((effective ?? server).baseUrl === server.localBaseUrl) return // already fast
-  void refreshEffective(server)
-}, LAN_RECHECK_MS)
+Network.addListener('networkStatusChange', (status) => {
+  if (status.connected) void refreshEffective(useConfigStore.getState().server)
+}).catch(() => {
+  // No Capacitor runtime (plain browser build) — start/resume still re-resolve.
+})
 
 /**
  * Give up on the LAN address and use the public one for everything that
