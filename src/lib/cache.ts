@@ -9,6 +9,25 @@ const PREFIX = 'subster.cache.'
 // Live instances, so clearAll() can also drop their in-memory copies.
 const instances = new Set<JsonCache<unknown>>()
 
+/** Remove every localStorage key starting with `prefix`; returns the count. */
+function removeStored(prefix: string): number {
+  let removed = 0
+  try {
+    const ls = globalThis.localStorage
+    if (!ls) return 0
+    for (let i = ls.length - 1; i >= 0; i--) {
+      const key = ls.key(i)
+      if (key?.startsWith(prefix)) {
+        ls.removeItem(key)
+        removed++
+      }
+    }
+  } catch {
+    // localStorage unavailable — nothing stored to remove.
+  }
+  return removed
+}
+
 export class JsonCache<T> {
   private mem = new Map<string, T>()
 
@@ -25,21 +44,16 @@ export class JsonCache<T> {
    */
   static clearAll(): number {
     for (const c of instances) c.mem.clear()
-    let removed = 0
-    try {
-      const ls = globalThis.localStorage
-      if (!ls) return 0
-      for (let i = ls.length - 1; i >= 0; i--) {
-        const key = ls.key(i)
-        if (key?.startsWith(PREFIX)) {
-          ls.removeItem(key)
-          removed++
-        }
-      }
-    } catch {
-      // localStorage unavailable — memory was still cleared.
-    }
-    return removed
+    return removeStored(PREFIX)
+  }
+
+  /**
+   * Remove every stored entry of a namespace that is no longer used, so a
+   * superseded cache doesn't sit in localStorage forever. Returns the number
+   * of entries removed.
+   */
+  static dropNamespace(namespace: string): number {
+    return removeStored(`${PREFIX}${namespace}.`)
   }
 
   private storageKey(key: string): string {

@@ -84,4 +84,18 @@ describe('JsonCache', () => {
     expect(JsonCache.clearAll()).toBe(0)
     expect(cache.get('k')).toBeUndefined()
   })
+
+  it('dropNamespace removes only that namespace’s stored entries', () => {
+    const ls = fakeLocalStorage()
+    vi.stubGlobal('localStorage', ls)
+    ls.setItem('subster.cache.gone-v1.a', '1')
+    ls.setItem('subster.cache.gone-v1.b', '2')
+    ls.setItem('subster.cache.gone-v10.c', '3') // shares the prefix, not the namespace
+    ls.setItem('subster.config', '{}')
+
+    expect(JsonCache.dropNamespace('gone-v1')).toBe(2)
+    expect(ls.getItem('subster.cache.gone-v1.a')).toBeNull()
+    expect(ls.getItem('subster.cache.gone-v10.c')).toBe('3')
+    expect(ls.getItem('subster.config')).toBe('{}')
+  })
 })

@@ -18,7 +18,13 @@ import {
 import { searchTrack } from '../metadata'
 import { isCurated } from '../metadata/curated'
 import { findCuratedSongs } from '../metadata/curatedFetch'
-import { ApiError, getPlaylistSongs, streamUrl, type Song } from '../subsonic/client'
+import {
+  ApiError,
+  diagnoseStreamFailure,
+  getPlaylistSongs,
+  streamUrl,
+  type Song,
+} from '../subsonic/client'
 import { cardMaker } from '../subsonic/cards'
 import { audioPlayer } from '../audio/player'
 import { getEffectiveServer } from './configStore'
@@ -192,17 +198,25 @@ export const useGameStore = create<GameStore>((set, get) => {
     }
   }
 
-  // A song whose file can't be decoded (bad rip, unsupported codec) would
-  // otherwise leave the turn in silent limbo: reveal it as 'broken' so the
-  // host sees which file needs fixing, and the game moves on for free.
-  audioPlayer.onError(() => {
-    if (get().status !== 'ready') return
-    const phase = get().game.phase
-    if (phase !== 'placing' && phase !== 'challenging') return
+  // A song that can't be played (gone from the server, server unreachable,
+  // bad rip) would otherwise leave the turn in silent limbo: reveal it as
+  // 'broken' so the host sees which song failed and why, and the game moves on
+  // for free.
+  audioPlayer.onError(async () => {
+    const playable = () => {
+      const phase = get().game.phase
+      return get().status === 'ready' && (phase === 'placing' || phase === 'challenging')
+    }
+    if (!playable()) return
+    const song = get().game.turn.song
     clearCountdown()
     set({ countdown: null, placeCountdown: null })
     audioPlayer.unwatch()
-    transport?.dispatch({ type: 'BROKEN' })
+    const server = getEffectiveServer()
+    const reason = song && server ? await diagnoseStreamFailure(server, song.id) : undefined
+    // The turn may have moved on while we asked the server.
+    if (!playable() || get().game.turn.song?.id !== song?.id) return
+    transport?.dispatch({ type: 'BROKEN', reason })
   })
 
   return {

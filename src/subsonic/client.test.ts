@@ -9,6 +9,7 @@ import {
   ping,
   removeSongFromPlaylist,
   connect,
+  diagnoseStreamFailure,
   resolveEffectiveServer,
   setSongStarred,
 } from './client'
@@ -342,5 +343,28 @@ describe('song actions', () => {
       vi.fn().mockResolvedValue(jsonResponse(failedEnvelope(50, 'not authorized'))),
     )
     await expect(addSongToPlaylist(config, 'pl9', 's7')).rejects.toBeInstanceOf(ApiError)
+  })
+})
+
+describe('diagnoseStreamFailure', () => {
+  it('reports a song the server no longer knows (error 70) as missing', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(failedEnvelope(70, 'Song not found'))))
+    expect(await diagnoseStreamFailure(config, 'stale')).toBe('missing')
+  })
+
+  it('reports a network failure or other server error as unreachable', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
+    expect(await diagnoseStreamFailure(config, 'x')).toBe('unreachable')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(failedEnvelope(40, 'Wrong password'))))
+    expect(await diagnoseStreamFailure(config, 'x')).toBe('unreachable')
+  })
+
+  it('blames the file when the server serves the song fine', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({ 'subsonic-response': { status: 'ok', song: { id: 'x', title: 'T' } } }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    expect(await diagnoseStreamFailure(config, 'x')).toBe('undecodable')
+    expect(String(fetchMock.mock.calls[0]![0])).toContain('getSong.view')
   })
 })

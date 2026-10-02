@@ -112,6 +112,7 @@ interface SubsonicEnvelope {
     error?: { code: number; message: string }
     randomSongs?: { song?: RawSong[] }
     searchResult3?: { song?: RawSong[] }
+    song?: RawSong
     artists?: { index?: Array<{ artist?: Array<{ id: string | number; name?: string }> }> }
     genres?: { genre?: RawGenre[] }
     musicFolders?: { musicFolder?: Array<{ id: string | number; name?: string }> }
@@ -196,6 +197,9 @@ export class ApiError extends Error {
 /** Subsonic error 41 — the server only accepts the legacy password scheme. */
 export const TOKEN_AUTH_UNSUPPORTED = 41
 
+/** Subsonic error 70 — the requested item doesn't exist (e.g. a stale song id). */
+export const NOT_FOUND = 70
+
 function toSong(raw: RawSong): Song {
   return {
     id: raw.id,
@@ -263,6 +267,30 @@ export async function getRandomSongs(
     musicFolderId: options.musicFolderId,
   })
   return (body.randomSongs?.song ?? []).map(toSong)
+}
+
+/**
+ * Why a song's stream failed, as far as the server can tell: it no longer
+ * knows the id, it couldn't be reached (or refused us), or it serves the song
+ * fine — so the file itself won't decode.
+ */
+export type StreamFailure = 'missing' | 'unreachable' | 'undecodable'
+
+/**
+ * Classify a failed stream. An `<audio>` element reports every failure —
+ * HTTP error, Subsonic error, undecodable file — as the same opaque error, so
+ * ask the server about the song directly.
+ */
+export async function diagnoseStreamFailure(
+  config: ServerConfig,
+  id: string,
+): Promise<StreamFailure> {
+  try {
+    await apiFetch(config, 'getSong.view', { id })
+    return 'undecodable'
+  } catch (e) {
+    return e instanceof ApiError && e.code === NOT_FOUND ? 'missing' : 'unreachable'
+  }
 }
 
 /**

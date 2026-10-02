@@ -266,7 +266,7 @@ export function Game() {
           </p>
           {lastResult === 'broken' && (
             <p className="mb-1 rounded-xl bg-amber-500/10 p-3 text-sm text-amber-200 ring-1 ring-amber-500/30">
-              {t.game.brokenHint}
+              {t.game.brokenHint[game.turn.brokenReason ?? 'undecodable']}
             </p>
           )}
           {game.turn.reveal.length > 0 && (

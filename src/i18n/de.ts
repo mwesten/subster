@@ -122,8 +122,14 @@ export const de: Dict = {
     discarded: '✗ Knapp daneben — Karte verworfen',
     skipped: '⏭ Übersprungen — das war es',
     broken: '⚠ Dieser Song konnte nicht abgespielt werden',
-    brokenHint:
-      'Die Audiodatei scheint defekt zu sein — am besten in der Bibliothek reparieren oder ersetzen. Kein Token verbraucht; der nächste Song geht aufs Haus.',
+    brokenHint: {
+      missing:
+        'Der Server kennt diesen Song nicht mehr — vermutlich wurde er verschoben, neu getaggt oder gelöscht, seit das Deck erstellt wurde. Kein Token verbraucht; der nächste Song geht aufs Haus.',
+      unreachable:
+        'Der Server war nicht erreichbar oder hat die Anfrage abgelehnt. Kein Token verbraucht; der nächste Song geht aufs Haus.',
+      undecodable:
+        'Die Audiodatei scheint defekt zu sein oder ein Format zu haben, das dieses Gerät nicht abspielen kann — am besten in der Bibliothek reparieren oder ersetzen. Kein Token verbraucht; der nächste Song geht aufs Haus.',
+    },
     like: 'Zu Favoriten hinzufügen',
     unlike: 'Aus Favoriten entfernen',
     addToPlaylist: 'Zu Playlist hinzufügen',

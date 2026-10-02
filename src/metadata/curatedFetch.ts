@@ -10,11 +10,21 @@ import { shuffle } from '../subsonic/deck'
  * Canon songs are a tiny slice of any library (~2–3%), so they never surface
  * often enough in a random deck pull — we must fetch them on purpose. To keep
  * that cheap: pull the library's artist list once and only search for canon
- * songs whose artist is present (most searches would otherwise miss). Each
- * hit/miss is cached persistently, so coverage converges over sessions and the
- * per-game search budget shrinks to near zero.
+ * songs whose artist is present (most searches would otherwise miss). Whether
+ * each canon song is in the library is cached persistently, so the misses —
+ * the vast majority — cost no search after the first time.
+ *
+ * Only that yes/no is cached, never the song itself: server ids (song, cover
+ * art) change when a file is moved or retagged or the server migrates its
+ * database, and a cached id then points at nothing — the song "fails to play".
+ * A known hit is searched again each game to get its current id.
  */
-const songCache = new JsonCache<Song | null>('curated-lib-v1')
+const inLibraryCache = new JsonCache<boolean>('curated-in-lib-v1')
+// Held whole songs, stale ids included — superseded by the yes/no cache above.
+JsonCache.dropNamespace('curated-lib-v1')
+
+/** Searches in flight at once — known hits are many, and each is a round trip. */
+const CONCURRENCY = 4
 
 export async function findCuratedSongs(
   config: ServerConfig,
@@ -28,37 +38,41 @@ export async function findCuratedSongs(
     return []
   }
 
+  const cacheKey = (key: string) => `${config.baseUrl}|${folderId}|${key}`
   const candidates = shuffle(
     curatedEntries.filter((e) => libArtists.has(artistKey(e.artist))),
     Math.random,
   )
+    .map((e) => {
+      const key = curatedKey(e.artist, e.title)
+      return { e, key, known: inLibraryCache.get(cacheKey(key)) }
+    })
+    .filter((c) => c.known !== false)
+  // Known hits first: their search is a near-sure find, so the budget goes to
+  // them before songs that may well be missing. (Stable sort keeps the shuffle.)
+  candidates.sort((a, b) => Number(b.known === true) - Number(a.known === true))
 
-  const found: Song[] = []
-  let searches = 0
-  for (const e of candidates) {
-    if (found.length >= opts.want) break
-    const key = curatedKey(e.artist, e.title)
-    const cacheKey = `${config.baseUrl}|${folderId}|${key}`
-    const cached = songCache.get(cacheKey)
-    if (cached !== undefined) {
-      if (cached) found.push(cached)
-      continue
-    }
-    if (searches >= opts.maxSearches) continue // budget spent — keep scanning cache only
-    searches++
-    let song: Song | null = null
+  const lookup = async ({ e, key }: (typeof candidates)[number]): Promise<Song | null> => {
+    let hits: Song[]
     try {
-      const hits = await search3(config, {
+      hits = await search3(config, {
         query: `${e.artist} ${e.title}`,
         songCount: 5,
         musicFolderId: opts.musicFolderId,
       })
-      song = hits.find((s) => curatedKey(s.artist, s.title) === key) ?? null
     } catch {
-      continue // transient failure: don't cache a miss
+      return null // transient failure: don't cache a miss
     }
-    songCache.set(cacheKey, song)
-    if (song) found.push(song)
+    const song = hits.find((s) => curatedKey(s.artist, s.title) === key) ?? null
+    inLibraryCache.set(cacheKey(key), song !== null)
+    return song
   }
-  return found
+
+  const found: Song[] = []
+  const budget = candidates.slice(0, opts.maxSearches)
+  for (let i = 0; i < budget.length && found.length < opts.want; i += CONCURRENCY) {
+    const songs = await Promise.all(budget.slice(i, i + CONCURRENCY).map(lookup))
+    for (const song of songs) if (song) found.push(song)
+  }
+  return found.slice(0, opts.want)
 }

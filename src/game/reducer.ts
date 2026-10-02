@@ -91,9 +91,9 @@ export function reducer(state: GameState, action: GameAction): GameState {
     }
 
     case 'BROKEN': {
-      // The audio file couldn't be played (bad rip, unsupported codec). Reveal
-      // the song so the host knows which file to fix — costs nothing; NEXT_TURN
-      // draws a fresh song for the same player.
+      // The song couldn't be played (gone from the server, server unreachable,
+      // bad rip). Reveal it so the host knows which file to look at — costs
+      // nothing; NEXT_TURN draws a fresh song for the same player.
       if (state.phase !== 'placing' && state.phase !== 'challenging') return state
       // Refund any challenge tokens already bet on the unplayable song.
       const players = state.players.map((p, i) =>
@@ -105,7 +105,7 @@ export function reducer(state: GameState, action: GameAction): GameState {
         ...state,
         players,
         phase: 'revealed',
-        turn: { ...state.turn, challenges: [], lastResult: 'broken' },
+        turn: { ...state.turn, challenges: [], lastResult: 'broken', brokenReason: action.reason },
       }
     }
 
