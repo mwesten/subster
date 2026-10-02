@@ -107,7 +107,9 @@ URL but still allows it, since LAN-only setups are common.
 
 Optionally add a **local address** (e.g. `http://192.168.1.20:4533`): on each start the app pings
 it briefly and uses it when reachable — fast and direct at home, automatic fallback to the server
-URL when away. The home screen appends "· LAN" to the server name while the local address is in use.
+URL when away. Leaving the WiFi mid-game switches over after a short stall; coming back is noticed
+when the app returns to the foreground or a game ends. The home screen appends "· LAN" to the
+server name while the local address is in use.
 
 - **Audio** streams via `stream.view` into an `<audio>` element, and **cover art** via
   `getCoverArt.view` into `<img>`. Neither is affected by CORS.

@@ -1,0 +1,3 @@
+• Fixed: after a server update or library rescan, many famous songs failed to play and were wrongly reported as broken files
+• When a song can't be played, the app now says why: gone from the server, server unreachable, or a file that won't play
+• With a local (LAN) address set, switching between WiFi and mobile data mid-game no longer leaves the app stuck on the address that stopped working

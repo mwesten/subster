@@ -1,0 +1,3 @@
+• Behoben: Nach einem Server-Update oder einem neuen Bibliotheks-Scan ließen sich viele bekannte Songs nicht abspielen und wurden fälschlich als defekte Dateien gemeldet
+• Lässt sich ein Song nicht abspielen, sagt die App jetzt warum: nicht mehr auf dem Server, Server nicht erreichbar oder eine Datei, die nicht abspielbar ist
+• Mit eingetragener lokaler (LAN-)Adresse bleibt die App beim Wechsel zwischen WLAN und mobilen Daten mitten im Spiel nicht mehr an der Adresse hängen, die nicht mehr funktioniert
