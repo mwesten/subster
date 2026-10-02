@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { resolveEffectiveServer } from '../subsonic/client'
+import { App as CapApp } from '@capacitor/app'
+import { resolveEffectiveServer, setAddressPolicy } from '../subsonic/client'
 
 /**
  * Subsonic server credentials. We store the derived salt+token (not the raw
@@ -140,4 +141,95 @@ void refreshEffective(activeOf(useConfigStore.getState()))
 useConfigStore.subscribe((state, prev) => {
   const current = activeOf(state)
   if (current !== activeOf(prev)) void refreshEffective(current)
+})
+
+// The phone can move between WiFi and mobile data while we are backgrounded,
+// which flips whether the LAN address is reachable. Re-check on every return to
+// the foreground; without this the address stays pinned until the app is killed.
+CapApp.addListener('appStateChange', ({ isActive }) => {
+  if (isActive) void refreshEffective(activeOf(useConfigStore.getState()))
+}).catch(() => {
+  // No Capacitor runtime (plain browser build) — resolve-on-start still applies.
+})
+
+/**
+ * Look for the LAN again at a moment when nothing is streaming. Going out
+ * through the public address and back in over WiFi is markedly slower than
+ * talking to the server directly, so staying demoted has a real cost — but
+ * hunting for it during play costs more than it saves.
+ *
+ * There is deliberately no timer here. A 20s poll was tried and measurably
+ * caused the stalls it meant to avoid: `Promise.race` stops us waiting but
+ * cannot cancel the underlying native request (CapacitorHttp ignores
+ * AbortSignal), so every probe against an unreachable LAN left a socket hanging
+ * until the OS gave up. Those accumulated and contended with the audio fetch.
+ * `@capacitor/network` would give the exact signal, but it merges
+ * ACCESS_NETWORK_STATE into the manifest, and a new permission is too high a
+ * price for this. So: app resume, and the end of a game.
+ */
+export function recheckAddress(): void {
+  void refreshEffective(activeOf(useConfigStore.getState()))
+}
+
+/**
+ * Give up on the LAN address and use the public one for everything that
+ * follows. Returns false if there was nothing to demote (no LAN configured, or
+ * we were already on the public address). Callers outside an API request — the
+ * audio element, which fetches its own URL — use this to recover too.
+ */
+export function demoteFromLan(): boolean {
+  const state = useConfigStore.getState()
+  const server = activeOf(state)
+  const current = state.effective ?? server
+  if (!server?.localBaseUrl || current?.baseUrl !== server.localBaseUrl) return false
+  useConfigStore.getState().setEffective(server)
+  return true
+}
+
+/**
+ * Demote only after confirming the LAN address really is gone. The audio
+ * element cannot tell "the server vanished" from "this file is corrupt", and a
+ * single bad rip must not cost a user at home their fast local path for the
+ * rest of the game — so pay one short ping before giving it up.
+ */
+export async function demoteIfLanUnreachable(): Promise<boolean> {
+  const state = useConfigStore.getState()
+  const server = activeOf(state)
+  const current = state.effective ?? server
+  if (!server?.localBaseUrl || current?.baseUrl !== server.localBaseUrl) return false
+  const resolved = await resolveEffectiveServer(server)
+  if (resolved.baseUrl === server.localBaseUrl) return false // LAN answers: the file is the problem
+  useConfigStore.getState().setEffective(resolved)
+  return true
+}
+
+// A switch that happens mid-session gets caught here instead: the first request
+// to fail against the LAN address demotes us to the public one and retries, so
+// the user sees a brief stall rather than an error.
+setAddressPolicy({
+  // Long-running callers (the deck producer) capture a config once and keep
+  // using it. Once we have demoted, redirect those to the live address instead
+  // of letting each one rediscover that the LAN is gone.
+  //
+  // Strictly one-way: a caller that deliberately names the primary address —
+  // the connection test in Server setup — must never be steered onto the LAN,
+  // or it would report success for a public URL that does not work.
+  current(config) {
+    const state = useConfigStore.getState()
+    const server = activeOf(state)
+    const { effective } = state
+    if (!server?.localBaseUrl || !effective) return config
+    const staleLan =
+      config.baseUrl === server.localBaseUrl && effective.baseUrl !== server.localBaseUrl
+    return staleLan ? effective : config
+  },
+
+  onFailure(failed) {
+    const server = activeOf(useConfigStore.getState())
+    // Only the LAN address has somewhere to fall back to; anything else is a
+    // real failure and should surface.
+    if (!server?.localBaseUrl || failed.baseUrl !== server.localBaseUrl) return null
+    demoteFromLan()
+    return server
+  },
 })

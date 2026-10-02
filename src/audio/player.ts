@@ -110,8 +110,12 @@ class AudioPlayer {
         // Autoplay can be blocked until a gesture; UI triggers cover this.
       }
     }
-    if (el.src !== url) {
-      el.src = url
+    if (el.src !== url) el.src = url
+    // Only a mid-song start needs the duration. Waiting for `loadedmetadata`
+    // unconditionally delayed every song by however long the server took to
+    // report a length; starting at 0 needs none of that, so hand it to the
+    // element and let it begin as soon as it has bytes.
+    if (startAt > 0 && el.readyState < HTMLMediaElement.HAVE_METADATA) {
       el.addEventListener('loadedmetadata', seekAndPlay, { once: true })
     } else {
       seekAndPlay()
