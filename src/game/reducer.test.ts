@@ -177,6 +177,15 @@ describe('tokens', () => {
     expect(state.turn.lastResult).toBe('broken')
   })
 
+  it('BROKEN records why the song failed, and the next turn forgets it', () => {
+    const deck = [song('a', 1990), song('b', 1980), song('c', 1995), song('d', 2000)]
+    let state = start(deck, settings, 2, 1)
+    state = reducer(state, { type: 'BROKEN', reason: 'missing' })
+    expect(state.turn.brokenReason).toBe('missing')
+    state = reducer(state, { type: 'NEXT_TURN' })
+    expect(state.turn.brokenReason).toBeUndefined()
+  })
+
   it('BROKEN is a no-op outside placing/challenging', () => {
     const deck = [song('a', 1990), song('b', 1980), song('c', 1995), song('d', 2000)]
     let state = start(deck, settings, 2, 1)

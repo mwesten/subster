@@ -129,8 +129,16 @@ export const en = {
     discarded: '✗ Not quite — card discarded',
     skipped: '⏭ Skipped — here it is',
     broken: '⚠ This song could not be played',
-    brokenHint:
-      'The audio file appears to be broken — consider fixing or replacing it in your library. No token was spent; the next song is on the house.',
+    // Why it failed, as far as the server could tell. Each ends with the
+    // same reassurance that the turn was free.
+    brokenHint: {
+      missing:
+        'The server no longer knows this song — it was probably moved, retagged or deleted since the deck was built. No token was spent; the next song is on the house.',
+      unreachable:
+        'The server couldn’t be reached, or refused the request. No token was spent; the next song is on the house.',
+      undecodable:
+        'The audio file appears to be broken or in a format this device can’t play — consider fixing or replacing it in your library. No token was spent; the next song is on the house.',
+    },
     // Icon-button aria labels + playlist-picker row feedback.
     like: 'Add to favorites',
     unlike: 'Remove from favorites',

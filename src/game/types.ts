@@ -1,4 +1,4 @@
-import type { Song } from '../subsonic/client'
+import type { Song, StreamFailure } from '../subsonic/client'
 
 /** A song that has been correctly placed on a player's timeline. */
 export interface TimelineCard {
@@ -65,6 +65,8 @@ export interface CurrentTurn {
   challenges: Challenge[]
   /** Result of the active player's placement (or 'skipped'/'broken'), for UI feedback. */
   lastResult: 'correct' | 'wrong' | 'skipped' | 'broken' | null
+  /** Why a 'broken' song failed to play, when known — picks the hint shown. */
+  brokenReason?: StreamFailure
   /** Player id who stole the card via a correct challenge, if any. */
   stealerId: string | null
   /** Whether the active player has been awarded the title+artist token this turn. */
@@ -88,7 +90,7 @@ export type GameAction =
   | { type: 'START'; players: Player[]; settings: GameSettings; deck: Song[] }
   | { type: 'PLACE'; slot: number }
   | { type: 'SKIP' } // active player spends a token to discard + redraw
-  | { type: 'BROKEN' } // the song's audio failed to play → reveal it free of charge
+  | { type: 'BROKEN'; reason?: StreamFailure } // the song's audio failed to play → reveal it free of charge
   | { type: 'OPEN_CHALLENGES' } // active locks placement → challenging phase
   | { type: 'CHALLENGE'; playerIndex: number; slot: number } // bet a token on a slot
   | { type: 'UNCHALLENGE'; playerIndex: number } // take back a bet (refunds the token)
