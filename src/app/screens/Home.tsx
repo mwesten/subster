@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { Layout } from '../Layout'
 import { Button } from '../../ui/Button'
 import { useActiveServer, useConfigStore } from '../../store/configStore'
+import { useNeedsCanonScan } from '../../store/canonScanStore'
 import { useT, useLocaleStore, LANGUAGES } from '../../i18n'
 
 export function Home() {
@@ -12,6 +13,7 @@ export function Home() {
   // address feature is verifiable at a glance.
   const viaLan =
     !!server?.localBaseUrl && !!effective && effective.baseUrl === server.localBaseUrl
+  const needsScan = useNeedsCanonScan(server?.id)
   const t = useT()
   const { locale, setLocale } = useLocaleStore()
 
@@ -53,6 +55,11 @@ export function Home() {
               ? t.home.serverLabel(server.name || server.baseUrl) + (viaLan ? ' · LAN' : '')
               : t.home.serverSettings}
           </Button>
+          {needsScan && (
+            <button className="text-sm text-brand-300" onClick={() => navigate('/server')}>
+              {t.home.canonTip}
+            </button>
+          )}
         </div>
       </div>
 

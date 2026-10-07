@@ -11,6 +11,7 @@ export const de: Dict = {
     serverSettings: 'Server-Einstellungen',
     footer: 'Musikalische Zeitreise · kein Backend · keine Karten',
     language: 'Sprache',
+    canonTip: 'Tipp: Einmal die bekannten Songs auf deinem Server suchen, für mehr Abwechslung →',
   },
   server: {
     title: 'Subsonic-Server verbinden',
@@ -35,6 +36,7 @@ export const de: Dict = {
     legacyAuth:
       'Dieser Server akzeptiert nur die Legacy-Authentifizierung — das Passwort wird direkt übertragen statt als Token — deshalb muss das Passwort selbst auf diesem Gerät gespeichert werden. Ein App-Passwort statt des Kontopassworts ist hier eine gute Idee.',
     legacyAuthSaved: 'Gespeichert — aber beachte, wie dieser Server dich anmeldet:',
+    done: 'Fertig',
     continueAnyway: 'Verstanden, weiter',
     saved: 'Gespeicherte Server',
     activeServer: 'aktiv',
@@ -43,6 +45,15 @@ export const de: Dict = {
     cachesCleared: (n: number) => `✓ ${n} Einträge gelöscht`,
     clearCachesHint:
       'Gespeicherte Deezer/MusicBrainz/Wikidata-Abfragen verfallen nie. Leere sie, wenn ein falsches Jahr oder Ranking an der Quelle korrigiert wurde — das nächste Deck holt alles frisch. Serververbindung und Einstellungen bleiben erhalten.',
+    canonTitle: 'Bekannte Songs',
+    canonRecommended: 'Empfohlen: bekannte Songs auf diesem Server suchen',
+    findCanon: 'Bekannte Songs auf diesem Server suchen',
+    findingCanon: (done: number, total: number) => `Suche… ${done} / ${total}`,
+    canonFound: (n: number, of: number, byArtists: number) =>
+      `✓ ${n} der ${of} mitgelieferten bekannten Songs gefunden (${byArtists} von Interpreten in deiner Bibliothek)`,
+    canonFailed: 'Konnte die Bibliotheken nicht lesen. Ist der Server erreichbar?',
+    findCanonHint:
+      'Jedes Deck mischt bekannte Songs aus einer mitgelieferten Liste unter. Normalerweise findet die App sie in deiner Bibliothek nach und nach, ein paar Dutzend pro Spiel, daher wiederholen sich die ersten Spiele öfter. Hier alle zu suchen bringt sofort volle Abwechslung; nach dem Hinzufügen von Musik erneut ausführen. Gefragt wird nur dein eigener Server; mit mobilen Daten kann es ein paar Minuten dauern.',
   },
   setup: {
     title: 'Neues Spiel',

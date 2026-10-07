@@ -11,6 +11,7 @@ export const nl: Dict = {
     serverSettings: 'Serverinstellingen',
     footer: 'Muzikale tijdreis · geen backend · geen kaartjes',
     language: 'Taal',
+    canonTip: 'Tip: zoek één keer de bekende nummers op je server, voor meer afwisseling →',
   },
   server: {
     title: 'Subsonic server verbinden',
@@ -36,6 +37,7 @@ export const nl: Dict = {
       'Deze server accepteert alleen verouderde verificatie — het wachtwoord wordt ongewijzigd verzonden, in plaats van via een token — dus het wachtwoord zelf moet op dit apparaat worden opgeslagen. Een appwachtwoord in plaats van je accountwachtwoord is hier een goed idee.',
     legacyAuthSaved: 'Opgeslagen — maar let op hoe deze server je aanmeldt:',
     continueAnyway: 'Begrepen, doorgaan',
+    done: 'Klaar',
     saved: 'Opgeslagen servers',
     activeServer: 'in gebruik',
     addServer: '+ Nog een server toevoegen',
@@ -43,6 +45,15 @@ export const nl: Dict = {
     cachesCleared: (n: number) => `✓ ${n} cache-items gewist`,
     clearCachesHint:
       'Gecachte opzoekingen bij Deezer, MusicBrainz en Wikidata verlopen nooit. Wis ze wanneer een verkeerd jaar of een verkeerde ranking bij de bron is gecorrigeerd — bij de volgende deck-opbouw wordt alles opnieuw opgehaald. De serververbinding en je instellingen blijven bewaard.',
+    canonTitle: 'Bekende nummers',
+    canonRecommended: 'Aanbevolen: zoek de bekende nummers op deze server',
+    findCanon: 'Bekende nummers op deze server zoeken',
+    findingCanon: (done: number, total: number) => `Zoeken… ${done} / ${total}`,
+    canonFound: (n: number, of: number, byArtists: number) =>
+      `✓ ${n} van de ${of} meegeleverde bekende nummers gevonden (${byArtists} van artiesten in je bibliotheek)`,
+    canonFailed: 'Kon de bibliotheken niet lezen. Is de server bereikbaar?',
+    findCanonHint:
+      'Elke kaartenstapel mengt bekende nummers uit een meegeleverde lijst erdoor. Normaal vindt de app zo per spel een paar dozijn tegelijk in je bibliotheek, dus de eerste spellen herhalen zich vaker. Hier alles zoeken geeft meteen volledige afwisseling; doe het opnieuw nadat je muziek hebt toegevoegd. Alleen je eigen server wordt benaderd; via mobiele data kan het een paar minuten duren.',
   },
   setup: {
     title: 'Nieuw spel',
