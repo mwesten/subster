@@ -148,7 +148,7 @@ export const en = {
     removedFromPlaylist: 'removed',
     addFailed: 'not allowed',
     noPlaylists: 'No playlists on the server yet.',
-    exclude: 'Never deal this again',
+    exclude: 'Exclude from now on',
     excludeSong: 'This song',
     excludeArtist: (name: string) => `Everything by ${name}`,
     namedOn: '✓ Named title + artist (+1 token)',
@@ -177,7 +177,7 @@ export const en = {
   exclusions: {
     title: 'Exclusions',
     intro:
-      'Songs matching anything on this list are never dealt. The list is kept on this device and applies on every server.',
+      'Songs matching anything on this list never come up in a game. The list is kept on this device and applies on every server.',
     search: 'Search artists, albums, songs, playlists',
     artists: 'Artists',
     albums: 'Albums',

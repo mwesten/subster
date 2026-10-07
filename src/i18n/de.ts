@@ -138,7 +138,7 @@ export const de: Dict = {
     removedFromPlaylist: 'entfernt',
     addFailed: 'nicht erlaubt',
     noPlaylists: 'Noch keine Playlists auf dem Server.',
-    exclude: 'Nie wieder ziehen',
+    exclude: 'Künftig ausschließen',
     excludeSong: 'Diesen Song',
     excludeArtist: (name: string) => `Alles von ${name}`,
     namedOn: '✓ Titel + Interpret genannt (+1 Token)',
@@ -167,7 +167,7 @@ export const de: Dict = {
   exclusions: {
     title: 'Ausschlüsse',
     intro:
-      'Songs, auf die etwas in dieser Liste zutrifft, werden nie gezogen. Die Liste liegt auf diesem Gerät und gilt für jeden Server.',
+      'Songs, die zu einem Eintrag dieser Liste passen, kommen nie ins Spiel. Die Liste liegt auf diesem Gerät und gilt für jeden Server.',
     search: 'Interpreten, Alben, Songs, Playlists suchen',
     artists: 'Interpreten',
     albums: 'Alben',
