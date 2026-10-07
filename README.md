@@ -82,7 +82,7 @@ No physical cards, no accounts, **no backend** — just your phone and your own 
 - ✅ **Difficulty presets** (Hits / Balanced / Deep cuts) + year-range and genre filters
 - ✅ Installable as a **PWA** (offline app shell) and as an **Android APK**; on Android the song keeps
   playing with the screen off via a native media session (lock-screen controls)
-- ✅ English + German UI
+- ✅ English, German and Dutch UI
 - ⏳ Later: PRO/EXPERT/Teamwork modes, multi-device real-time play (Trystero P2P)
 
 ## Develop
@@ -97,8 +97,8 @@ npm run build      # production build → dist/
 
 ## Translations
 
-The UI is available in English and German. Corrections and new languages are very welcome as pull
-requests, and no coding experience is needed beyond editing a text file.
+The UI is available in English, German and Dutch. Corrections and new languages are very welcome
+as pull requests, and no coding experience is needed beyond editing a text file.
 
 All UI text lives in [`src/i18n/`](src/i18n), one file per language. [`en.ts`](src/i18n/en.ts) is
 the source of truth: every other language must contain exactly the same keys, and the build fails
@@ -107,14 +107,14 @@ if one is missing.
 **Fix an existing translation:** edit the string in that language's file (e.g.
 [`de.ts`](src/i18n/de.ts)) and open a PR.
 
-**Add a language** (Dutch as the example):
+**Add a language** (French as the example):
 
-1. Copy `src/i18n/de.ts` to `src/i18n/nl.ts`, rename the export to `nl`, and translate the values.
+1. Copy `src/i18n/de.ts` to `src/i18n/fr.ts`, rename the export to `fr`, and translate the values.
    Leave the keys (left of the colon) as they are. Some values are small functions, such as
    `` playerN: (n: number) => `Player ${n}` `` — translate only the text inside the backticks and
    keep `${…}` placeholders intact.
-2. Register it in [`src/i18n/index.ts`](src/i18n/index.ts): add `nl` to `LOCALES` and
-   `{ code: 'nl', label: 'Nederlands' }` to `LANGUAGES`. The code is the two-letter language code;
+2. Register it in [`src/i18n/index.ts`](src/i18n/index.ts): add `fr` to `LOCALES` and
+   `{ code: 'fr', label: 'Français' }` to `LANGUAGES`. The code is the two-letter language code;
    the app picks it automatically on devices set to that language.
 3. Run `npm run typecheck` to confirm nothing is missing. If you can't run it, open the PR anyway
    and we'll check it.
