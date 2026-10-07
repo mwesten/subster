@@ -7,10 +7,12 @@ import {
   newServerId,
   useActiveServer,
   useConfigStore,
+  useEffectiveServer,
   type ServerConfig,
 } from '../../store/configStore'
 import { connect, ping } from '../../subsonic/client'
 import { JsonCache } from '../../lib/cache'
+import { scanCuratedSongs } from '../../metadata/curatedFetch'
 import { useT } from '../../i18n'
 
 /** Re-check a server we already hold credentials for, shaped like connect(). */
@@ -23,6 +25,7 @@ export function ServerSetup() {
   const navigate = useNavigate()
   const { servers, activeId, saveServer, selectServer, removeServer } = useConfigStore()
   const active = useActiveServer()
+  const effective = useEffectiveServer()
   const t = useT()
 
   // Which saved server the form is editing; null means "a new one".
@@ -35,6 +38,9 @@ export function ServerSetup() {
   const [status, setStatus] = useState<'idle' | 'testing' | 'error'>('idle')
   const [error, setError] = useState('')
   const [cachesCleared, setCachesCleared] = useState<number | null>(null)
+  const [scan, setScan] = useState<
+    { state: 'running'; done: number; total: number } | { state: 'done'; inLibrary: number; byArtists: number; bundled: number } | { state: 'failed' } | null
+  >(null)
   // Set after saving a server that needs the legacy scheme, so the warning is
   // seen at the moment it becomes true rather than only on a later visit.
   const [savedWithPassword, setSavedWithPassword] = useState(false)
@@ -53,6 +59,16 @@ export function ServerSetup() {
     setError('')
     setSavedWithPassword(false)
     if (target) selectServer(target.id)
+  }
+
+  // Uses the resolved address, so it runs over the LAN when that answers.
+  async function findCanon() {
+    if (!effective) return
+    setScan({ state: 'running', done: 0, total: 0 })
+    const found = await scanCuratedSongs(effective, (done, total) =>
+      setScan({ state: 'running', done, total }),
+    )
+    setScan(found == null ? { state: 'failed' } : { state: 'done', ...found })
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -247,6 +263,23 @@ export function ServerSetup() {
             >
               {t.server.disconnect}
             </Button>
+          )}
+          {editing && editing.id === activeId && (
+            <>
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={scan?.state === 'running'}
+                onClick={() => void findCanon()}
+              >
+                {scan?.state === 'running' ? t.server.findingCanon(scan.done, scan.total) : t.server.findCanon}
+              </Button>
+              {scan?.state === 'done' && (
+                <span className="text-sm text-brand-300">{t.server.canonFound(scan.inLibrary, scan.bundled, scan.byArtists)}</span>
+              )}
+              {scan?.state === 'failed' && <span className="text-sm text-red-400">{t.server.canonFailed}</span>}
+              <span className="text-xs text-slate-500">{t.server.findCanonHint}</span>
+            </>
           )}
           <Button type="button" variant="ghost" onClick={() => setCachesCleared(JsonCache.clearAll())}>
             {cachesCleared != null ? t.server.cachesCleared(cachesCleared) : t.server.clearCaches}

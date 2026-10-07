@@ -50,6 +50,13 @@ export const en = {
     cachesCleared: (n: number) => `✓ ${n} cached entries cleared`,
     clearCachesHint:
       'Cached Deezer/MusicBrainz/Wikidata lookups never expire. Clear them when a wrong year or ranking has been fixed at the source — the next deck build re-fetches everything fresh. Server connection and settings are kept.',
+    findCanon: 'Find famous songs on this server',
+    findingCanon: (done: number, total: number) => `Searching… ${done} / ${total}`,
+    canonFound: (n: number, of: number, byArtists: number) =>
+      `✓ ${n} of the ${of} bundled famous songs found (${byArtists} by artists in your library)`,
+    canonFailed: 'Could not read the libraries. Is the server reachable?',
+    findCanonHint:
+      'Every deck mixes in well-known songs from a bundled list. The app normally finds them in your library a few dozen per game, so the first games repeat more. Searching for all of them here gives full variety right away; run it again after adding music. Only your own server is asked; on mobile data it can take a few minutes.',
   },
   setup: {
     title: 'New game',
