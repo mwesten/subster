@@ -37,8 +37,8 @@ No physical cards, no accounts, **no backend** — just your phone and your own 
 - ✅ **Several servers**: save as many as you like and switch between them; each remembers its own
   libraries, playlist and genre
 - ✅ **Deck sources** — any combination of your libraries (e.g. Music + Soundtracks, skipping
-  Audiobooks), each weighted by the square root of its size, so a small library gets a fair share
-  without flooding the deck, or **any Subsonic playlist**: hand-picked lists play as-is (shuffled,
+  Audiobooks), each weighted by the square root of its size but never below half an equal
+  share, so a small library stays in play without flooding the deck, or **any Subsonic playlist**: hand-picked lists play as-is (shuffled,
   file years, no ranking), though the full pipeline can be re-enabled on top. No artist fills more
   than about a tenth of a deck unless there is nothing else, and an artist's cards rotate through
   the players

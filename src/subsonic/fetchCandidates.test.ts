@@ -23,14 +23,14 @@ describe('fetchCandidates', () => {
   })
 
   it('weights each chosen library by the square root of its size', async () => {
-    librarySongCount.mockReset().mockImplementation(async (f) => (f === '1' ? 10_000 : 100))
+    librarySongCount.mockReset().mockImplementation(async (f) => (f === '1' ? 10_000 : 3_600))
     getRandomSongs
       .mockReset()
       .mockImplementation(async (_c, o) => songs(o.musicFolderId === '1' ? 'big' : 'small', o.size ?? 0))
-    const pool = await fetchCandidates(config, { size: 110, musicFolderIds: ['1', '2'] })
-    // √10000 : √100 = 100 : 10
-    expect(pool.filter((s) => s.artist === 'big')).toHaveLength(100)
-    expect(pool.filter((s) => s.artist === 'small')).toHaveLength(10)
+    const pool = await fetchCandidates(config, { size: 100, musicFolderIds: ['1', '2'] })
+    // √10000 : √3600 = 100 : 60
+    expect(pool.filter((s) => s.artist === 'big')).toHaveLength(63)
+    expect(pool.filter((s) => s.artist === 'small')).toHaveLength(37)
   })
 
   it('falls back to equal shares when a library cannot be counted', async () => {
@@ -61,14 +61,17 @@ describe('shareBySize', () => {
   const list = (prefix: string, n: number) => Array.from({ length: n }, (_, i) => `${prefix}${i}`)
   const count = (out: string[], prefix: string) => out.filter((x) => x.startsWith(prefix)).length
 
-  it("gives a small single-artist library a small share, not a third (a reported library setup)", () => {
+  it('gives a small library less than an equal share, but at least half of one (reported setups)', () => {
     // Muziek 10,165 songs, Kindermuziek 429, Soundtrack 70; a pool of 160.
     const out = shareBySize([list('m', 160), list('k', 160), list('s', 70)], [10_165, 429, 70], 160)
     expect(out).toHaveLength(160)
-    expect(count(out, 's')).toBeGreaterThanOrEqual(8)
-    expect(count(out, 's')).toBeLessThanOrEqual(12)
-    expect(count(out, 'k')).toBeGreaterThan(20)
-    expect(count(out, 'm')).toBeGreaterThan(110)
+    expect(count(out, 's')).toBe(26) // half of an equal third, not a third
+    expect(count(out, 'k')).toBe(26)
+    expect(count(out, 'm')).toBe(108)
+
+    // 23,936 songs next to 97: √ alone gave the small one 6%; the floor gives 25%.
+    const two = shareBySize([list('m', 160), list('k', 97)], [23_936, 97], 160)
+    expect(count(two, 'k')).toBe(40)
   })
 
   it('passes a short list’s unused share on, and never exceeds what is there', () => {
