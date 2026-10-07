@@ -7,7 +7,8 @@ const getMusicFolders = vi.fn<() => Promise<Array<{ id: string; name: string }>>
 const search3 = vi.fn<
   (c: ServerConfig, o: { query: string; musicFolderId?: string }) => Promise<Song[]>
 >()
-vi.mock('../subsonic/client', () => ({
+vi.mock('../subsonic/client', async (importOriginal) => ({
+  mainArtist: (await importOriginal<typeof import('../subsonic/client')>()).mainArtist,
   getArtists: (_c: ServerConfig, folder?: string) => getArtists(folder),
   getMusicFolders: () => getMusicFolders(),
   search3: (c: ServerConfig, o: { query: string }) => search3(c, o),

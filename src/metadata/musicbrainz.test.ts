@@ -3,6 +3,7 @@ import {
   earliestRecordingYear,
   looksLive,
   recordingMbidFromAlbum,
+  recordingMbidFromIsrc,
   recordingMbidFromText,
   yearFromRecordingMbid,
   yearOf,
@@ -58,6 +59,27 @@ describe('rate-limit retry', () => {
     vi.stubGlobal('fetch', fetchMock)
     expect(await settled(yearFromRecordingMbid('mbid-retry-fail'))).toEqual({ live: false })
     expect(fetchMock).toHaveBeenCalledTimes(3)
+  })
+})
+
+describe('recordingMbidFromIsrc', () => {
+  it('takes the earliest of the recordings an ISRC is linked to, not the first listed', async () => {
+    // As MusicBrainz has USEE11000453: two duplicates from a 2025 reissue
+    // listed before the 2010 original.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        res({
+          recordings: [
+            { id: 'reissue-a', 'first-release-date': '2025-10-03' },
+            { id: 'undated' },
+            { id: 'reissue-b', 'first-release-date': '2025-10-03' },
+            { id: 'original', 'first-release-date': '2010-10-04' },
+          ],
+        }),
+      ),
+    )
+    expect(await settled(recordingMbidFromIsrc('TEST-ISRC-EARLIEST'))).toBe('original')
   })
 })
 

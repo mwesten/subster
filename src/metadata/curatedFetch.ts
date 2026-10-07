@@ -1,5 +1,5 @@
 import type { ServerConfig } from '../store/configStore'
-import { getArtists, getMusicFolders, search3, type Song } from '../subsonic/client'
+import { getArtists, getMusicFolders, mainArtist, search3, type Song } from '../subsonic/client'
 import { JsonCache } from '../lib/cache'
 import { artistKey, curatedEntries, curatedKey } from './curated'
 import { interleave, shuffle } from '../subsonic/deck'
@@ -88,7 +88,7 @@ async function canonCandidates(config: ServerConfig, musicFolderIds?: string[], 
       } catch {
         return null // transient failure: don't cache a miss
       }
-      const song = hits.find((s) => curatedKey(s.artist, s.title) === key) ?? null
+      const song = hits.find((s) => curatedKey(mainArtist(s), s.title) === key) ?? null
       inLibraryCache.set(cacheKey(scope, key), song !== null)
       if (song) return song
     }

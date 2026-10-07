@@ -1,5 +1,5 @@
 import { curatedKey, normalizeName } from '../metadata/curated'
-import type { Song } from './client'
+import { mainArtist, type Song } from './client'
 
 /**
  * Something the player never wants dealt — e.g. songs or artists that upset
@@ -37,9 +37,10 @@ export function exclusionId(e: Exclusion): string {
   }
 }
 
-// What a server puts between collaborating artists. " and " is deliberately
-// missing: it is part of too many band names ("Simon and Garfunkel").
-const ARTIST_SEPARATORS = /\s*(?:[,&/;+]|\bfeat\.?|\bft\.|\bfeaturing\b|\bvs\.?|\bx\b|\bwith\b)\s*/i
+// What a server puts between collaborating artists ("•" is how Navidrome
+// joins a multi-valued artist tag). " and " is deliberately missing: it is
+// part of too many band names ("Simon and Garfunkel").
+const ARTIST_SEPARATORS = /\s*(?:[,&/;+•]|\bfeat\.?|\bft\.|\bfeaturing\b|\bvs\.?|\bx\b|\bwith\b)\s*/i
 
 /**
  * Every artist a song credits, normalized: the whole credit plus each
@@ -68,7 +69,8 @@ export function buildMatcher(exclusions: Exclusion[]): (song: Song) => boolean {
 
   return (song) => {
     if (songs.has(curatedKey(song.artist, song.title))) return true
-    const parts = artistParts(song.artist)
+    if (songs.has(curatedKey(mainArtist(song), song.title))) return true
+    const parts = [...artistParts(song.artist), ...(song.artists ?? []).map(normalizeName)]
     if (parts.some((p) => artists.has(p))) return true
     if (albums.length && song.album) {
       const album = normalizeName(song.album)

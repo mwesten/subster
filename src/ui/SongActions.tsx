@@ -3,6 +3,7 @@ import {
   addSongToPlaylist,
   getPlaylists,
   getPlaylistSongs,
+  mainArtist,
   removeSongFromPlaylist,
   setSongStarred,
   type Playlist,
@@ -31,7 +32,7 @@ export function SongActions({ song }: { song: Song }) {
   const [excludeOpen, setExcludeOpen] = useState(false)
   const toggleExclusion = useExclusionStore((s) => s.toggle)
   const songExclusion: Exclusion = { kind: 'song', title: song.title, artist: song.artist }
-  const artistExclusion: Exclusion = { kind: 'artist', name: song.artist }
+  const artistExclusion: Exclusion = { kind: 'artist', name: mainArtist(song) }
   const songExcluded = useIsExcluded(songExclusion)
   const artistExcluded = useIsExcluded(artistExclusion)
   const [playlists, setPlaylists] = useState<Playlist[] | null>(null)
@@ -139,7 +140,7 @@ export function SongActions({ song }: { song: Song }) {
           {(
             [
               [songExclusion, songExcluded, t.game.excludeSong],
-              [artistExclusion, artistExcluded, t.game.excludeArtist(song.artist)],
+              [artistExclusion, artistExcluded, t.game.excludeArtist(mainArtist(song))],
             ] as const
           ).map(([e, on, label]) => (
             <button

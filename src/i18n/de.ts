@@ -109,6 +109,7 @@ export const de: Dict = {
     start: 'Spiel starten',
   },
   game: {
+    mysterySong: 'Geheimer Song',
     quit: 'Beenden',
     backToQuit: 'Nochmal zurück wischen, um das Spiel zu beenden',
     tokens: (n: number) => `${n} Token`,

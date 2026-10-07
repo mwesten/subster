@@ -116,6 +116,8 @@ export const en = {
     start: 'Start game',
   },
   game: {
+    // Media notification title while a song plays (never its real title).
+    mysterySong: 'Mystery song',
     quit: 'Quit',
     backToQuit: 'Swipe back again to quit the game',
     tokens: (n: number) => `${n} token${n === 1 ? '' : 's'}`,
