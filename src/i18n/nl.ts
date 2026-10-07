@@ -198,7 +198,7 @@ export const nl: Dict = {
   a11y: {
     back: 'Terug',
     play: 'Afspelen',
-    pause: 'Pause',
+    pause: 'Pauze',
     position: (n: number) => `Positie ${n}`,
   },
 }
