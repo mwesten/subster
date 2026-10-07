@@ -1,4 +1,4 @@
-import { FormEvent, ReactNode, useState } from 'react'
+import { FormEvent, ReactNode, useEffect, useRef, useState } from 'react'
 import { Capacitor } from '@capacitor/core'
 import { useNavigate } from 'react-router-dom'
 import { Layout } from '../Layout'
@@ -283,8 +283,20 @@ function CanonScanCard(props: { serverId: string; config: ServerConfig; recommen
   const t = useT()
   const scan = useCanonScanStore((s) => s.scans[props.serverId])
   const needed = useNeedsCanonScan(props.serverId)
+  const ref = useRef<HTMLDivElement>(null)
+  // Recommended after saving a new server: the card appears below the form,
+  // likely under the keyboard still open from the password field. Close it
+  // and bring the card into view, or the recommendation goes unseen.
+  useEffect(() => {
+    if (!props.recommended) return
+    ;(document.activeElement as HTMLElement | null)?.blur()
+    // After the keyboard has gone, which resizes the view.
+    const timer = setTimeout(() => ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)
+    return () => clearTimeout(timer)
+  }, [props.recommended])
   return (
     <div
+      ref={ref}
       className={`flex flex-col gap-2 rounded-xl p-3 ring-1 ring-inset ${
         needed ? 'bg-brand-500/10 ring-brand-500' : 'bg-slate-800/60 ring-slate-700'
       }`}
