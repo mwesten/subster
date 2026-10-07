@@ -49,7 +49,8 @@ export function GameSetup() {
   const [genre, setGenre] = useState(savedSource.genre)
   const [genres, setGenres] = useState<Genre[]>([])
   const [folders, setFolders] = useState<MusicFolder[]>([])
-  const [musicFolderId, setMusicFolderId] = useState<string>(savedSource.musicFolderId)
+  // Empty = every library; null = not chosen yet (picked once folders load).
+  const [musicFolderIds, setMusicFolderIds] = useState<string[] | null>(savedSource.musicFolderIds)
   const [playlists, setPlaylists] = useState<Playlist[]>([])
   // Non-empty = deck comes from this playlist instead of a library.
   const [playlistId, setPlaylistId] = useState<string>(savedSource.playlistId)
@@ -72,16 +73,17 @@ export function GameSetup() {
     getMusicFolders(server)
       .then((fs) => {
         setFolders(fs)
-        // Keep a saved (still-valid) folder — 'all' is the deliberate
-        // no-filter choice; otherwise auto-pick a sensible one.
-        setMusicFolderId((cur) => {
-          if (cur === 'all') return cur
-          if (cur && fs.some((f) => f.id === cur)) return cur
+        // Keep the saved libraries that still exist — empty is the deliberate
+        // "all of them" choice; otherwise auto-pick a sensible one.
+        setMusicFolderIds((cur) => {
+          if (cur?.length === 0) return cur
+          const valid = (cur ?? []).filter((id) => fs.some((f) => f.id === id))
+          if (valid.length) return valid
           const preferred =
             fs.find((f) => /music/i.test(f.name) && !/audiobook|kids/i.test(f.name)) ??
             fs.find((f) => !/audiobook/i.test(f.name)) ??
             fs[0]
-          return preferred?.id ?? ''
+          return preferred ? [preferred.id] : null
         })
       })
       .catch(() => setFolders([]))
@@ -115,9 +117,18 @@ export function GameSetup() {
       setMetadataMode('offline')
     } else {
       setPlaylistId('')
-      setMusicFolderId(value.slice(2))
       setMetadataMode('full')
     }
+  }
+
+  // Empty means every library, so all of them show as selected.
+  const folderSelected = (id: string) => !musicFolderIds?.length || musicFolderIds.includes(id)
+
+  function toggleFolder(id: string) {
+    const current = folders.map((f) => f.id).filter(folderSelected)
+    const next = current.includes(id) ? current.filter((x) => x !== id) : [...current, id]
+    if (!next.length) return // at least one library has to stay in
+    setMusicFolderIds(next.length === folders.length ? [] : next)
   }
 
   function commitWinTarget(): number {
@@ -147,15 +158,14 @@ export function GameSetup() {
       yearFrom,
       yearTo,
       byServer: activeServerId
-        ? { ...saved.byServer, [activeServerId]: { genre, musicFolderId, playlistId, metadataMode } }
+        ? { ...saved.byServer, [activeServerId]: { genre, musicFolderIds, playlistId, metadataMode } }
         : saved.byServer,
     })
     startGame({
       playerNames: names,
       settings: { winTarget: target, startTokens: 2, challengeGrace },
       deck: {
-        musicFolderId:
-          playlistId || musicFolderId === 'all' ? undefined : musicFolderId || undefined,
+        musicFolderIds: playlistId || !musicFolderIds?.length ? undefined : musicFolderIds,
         playlistId: playlistId || undefined,
         difficulty,
         yearFrom: yearFrom ? Number(yearFrom) : undefined,
@@ -230,33 +240,42 @@ export function GameSetup() {
         <section className="flex flex-col gap-4">
           <h2 className="text-sm font-semibold text-slate-400">{t.setup.deck}</h2>
 
-          {(folders.length > 1 || playlists.length > 0) && (
+          {playlists.length > 0 && (
             <label className="flex items-center justify-between gap-3">
-              <span>{playlists.length > 0 ? t.setup.source : t.setup.library}</span>
+              <span>{t.setup.source}</span>
               <select
                 className="w-44 rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 outline-none focus:border-brand-500"
-                value={playlistId ? `p:${playlistId}` : `f:${musicFolderId}`}
+                value={playlistId ? `p:${playlistId}` : 'libraries'}
                 onChange={(e) => pickSource(e.target.value)}
               >
-                <optgroup label={t.setup.libraries}>
-                  <option value="f:all">{t.setup.allLibraries}</option>
-                  {folders.map((f) => (
-                    <option key={f.id} value={`f:${f.id}`}>
-                      {f.name}
+                <option value="libraries">{t.setup.libraries}</option>
+                <optgroup label={t.setup.playlists}>
+                  {playlists.map((p) => (
+                    <option key={p.id} value={`p:${p.id}`}>
+                      {p.name} · {t.setup.playlistSongs(p.songCount)}
                     </option>
                   ))}
                 </optgroup>
-                {playlists.length > 0 && (
-                  <optgroup label={t.setup.playlists}>
-                    {playlists.map((p) => (
-                      <option key={p.id} value={`p:${p.id}`}>
-                        {p.name} · {t.setup.playlistSongs(p.songCount)}
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
               </select>
             </label>
+          )}
+
+          {folders.length > 1 && !playlistId && (
+            <div className="flex flex-col gap-1.5">
+              <span>{t.setup.libraries}</span>
+              <div className="flex flex-wrap gap-2">
+                {folders.map((f) => (
+                  <button
+                    key={f.id}
+                    className={seg(folderSelected(f.id))}
+                    aria-pressed={folderSelected(f.id)}
+                    onClick={() => toggleFolder(f.id)}
+                  >
+                    {f.name}
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
 
           <div className="flex items-center justify-between gap-4">

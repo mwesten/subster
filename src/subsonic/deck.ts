@@ -152,8 +152,8 @@ export function isNonOriginalVersion(title: string, album?: string): boolean {
 
 /** Deck configuration chosen in Game Setup. */
 export interface DeckOptions {
-  /** Library to draw from (Subsonic music folder id). */
-  musicFolderId?: string
+  /** Libraries to draw from (Subsonic music folder ids); unset or empty = all. */
+  musicFolderIds?: string[]
   /** Build the deck from this playlist instead of a library. */
   playlistId?: string
   yearFrom?: number
@@ -186,27 +186,36 @@ export type MetadataMode = 'full' | 'noRanking' | 'offline'
 
 export interface FetchCandidatesOptions {
   size?: number
-  musicFolderId?: string
+  /** Libraries to draw from; unset or empty = all. */
+  musicFolderIds?: string[]
   genre?: string
   /** Drop tracks longer than this (guards against stray audiobook chapters). */
   maxDurationSec?: number
 }
 
 /**
- * Pull a large candidate pool from a chosen library and prefilter it (dedup,
- * drop live versions and over-long tracks). We deliberately over-fetch so the
- * popularity selection has a big pool to pick the genuinely known songs from.
+ * Pull a large candidate pool from the chosen libraries and prefilter it
+ * (dedup, drop live versions and over-long tracks). We deliberately over-fetch
+ * so the popularity selection has a big pool to pick the genuinely known songs
+ * from.
+ *
+ * Subsonic's random pull takes a single library, so several are fetched one
+ * by one and interleaved: each gets an equal share, and a small library is not
+ * drowned out by a big one. One that runs short leaves its share to the others.
  */
 export async function fetchCandidates(
   config: ServerConfig,
   options: FetchCandidatesOptions = {},
 ): Promise<Song[]> {
   const maxDuration = options.maxDurationSec ?? 900
-  const raw = await getRandomSongs(config, {
-    size: options.size ?? 20,
-    genre: options.genre,
-    musicFolderId: options.musicFolderId,
-  })
+  const size = options.size ?? 20
+  const folders = options.musicFolderIds?.length ? options.musicFolderIds : [undefined]
+  const perFolder = await Promise.all(
+    folders.map((musicFolderId) =>
+      getRandomSongs(config, { size, genre: options.genre, musicFolderId }),
+    ),
+  )
+  const raw = interleave(perFolder).slice(0, size)
   const seen = new Set<string>()
   return raw.filter((s) => {
     if (seen.has(s.id)) return false
@@ -215,6 +224,16 @@ export async function fetchCandidates(
     if (s.duration && s.duration > maxDuration) return false
     return true
   })
+}
+
+/** Round-robin merge: first of each list, then second of each, and so on. */
+export function interleave<T>(lists: T[][]): T[] {
+  const out: T[] = []
+  const longest = Math.max(0, ...lists.map((l) => l.length))
+  for (let i = 0; i < longest; i++) {
+    for (const list of lists) if (i < list.length) out.push(list[i] as T)
+  }
+  return out
 }
 
 /**

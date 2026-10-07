@@ -2,10 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ServerConfig } from '../store/configStore'
 import type { Song } from '../subsonic/client'
 
-const getArtists = vi.fn<() => Promise<string[]>>()
-const search3 = vi.fn<(c: ServerConfig, o: { query: string }) => Promise<Song[]>>()
+const getArtists = vi.fn<(folder?: string) => Promise<string[]>>()
+const search3 = vi.fn<
+  (c: ServerConfig, o: { query: string; musicFolderId?: string }) => Promise<Song[]>
+>()
 vi.mock('../subsonic/client', () => ({
-  getArtists: () => getArtists(),
+  getArtists: (_c: ServerConfig, folder?: string) => getArtists(folder),
   search3: (c: ServerConfig, o: { query: string }) => search3(c, o),
 }))
 
@@ -65,5 +67,29 @@ describe('findCuratedSongs', () => {
         : [],
     )
     expect((await findCuratedSongs(config, opts)).map((s) => s.id)).toEqual(['id'])
+  })
+
+  it('searches only the chosen libraries that hold the artist', async () => {
+    const config = server('https://scoped.example')
+    getArtists.mockImplementation(async (folder) => (folder === 'b' ? ['10cc'] : ['Somebody Else']))
+    search3.mockImplementation(async (_c, o) =>
+      o.query.includes("I'm Not in Love")
+        ? [{ id: 'id', title: "I'm Not in Love", artist: '10cc' }]
+        : [],
+    )
+    const found = await findCuratedSongs(config, { ...opts, musicFolderIds: ['a', 'b'] })
+    expect(found.map((s) => s.id)).toEqual(['id'])
+    expect(new Set(search3.mock.calls.map(([, o]) => o.musicFolderId))).toEqual(new Set(['b']))
+  })
+
+  it('still searches the libraries it could list when another fails', async () => {
+    const config = server('https://partial.example')
+    getArtists.mockImplementation(async (folder) => {
+      if (folder === 'a') throw new Error('offline')
+      return ['10cc']
+    })
+    search3.mockResolvedValue([])
+    await findCuratedSongs(config, { ...opts, musicFolderIds: ['a', 'b'] })
+    expect(search3).toHaveBeenCalled()
   })
 })
