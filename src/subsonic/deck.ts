@@ -1,5 +1,5 @@
 import type { ServerConfig } from '../store/configStore'
-import { getRandomSongs, mainArtist, type Song } from './client'
+import { getRandomSongs, librarySongCount, mainArtist, type Song } from './client'
 
 export type Rng = () => number
 
@@ -200,8 +200,8 @@ export interface FetchCandidatesOptions {
  * from.
  *
  * Subsonic's random pull takes a single library, so several are fetched one
- * by one and interleaved: each gets an equal share, and a small library is not
- * drowned out by a big one. One that runs short leaves its share to the others.
+ * by one and merged, each weighted by the square root of its song count (see
+ * shareBySize). If a library can't be counted, they get equal shares.
  */
 export async function fetchCandidates(
   config: ServerConfig,
@@ -210,12 +210,20 @@ export async function fetchCandidates(
   const maxDuration = options.maxDurationSec ?? 900
   const size = options.size ?? 20
   const folders = options.musicFolderIds?.length ? options.musicFolderIds : [undefined]
-  const perFolder = await Promise.all(
-    folders.map((musicFolderId) =>
-      getRandomSongs(config, { size, genre: options.genre, musicFolderId }),
+  const [perFolder, counts] = await Promise.all([
+    Promise.all(
+      folders.map((musicFolderId) =>
+        getRandomSongs(config, { size, genre: options.genre, musicFolderId }),
+      ),
     ),
-  )
-  const raw = interleave(perFolder).slice(0, size)
+    folders.length > 1
+      ? Promise.all(folders.map((f) => librarySongCount(config, f as string).catch(() => null)))
+      : null,
+  ])
+  const raw =
+    counts && counts.every((n) => n != null)
+      ? shareBySize(perFolder, counts as number[], size)
+      : interleave(perFolder).slice(0, size)
   const seen = new Set<string>()
   return raw.filter((s) => {
     if (seen.has(s.id)) return false
@@ -224,6 +232,43 @@ export async function fetchCandidates(
     if (s.duration && s.duration > maxDuration) return false
     return true
   })
+}
+
+/**
+ * Take `size` items from several libraries' lists, each library's share ∝ √ of
+ * its song count. Equal shares let a 70-song single-artist library fill a
+ * third of a deck next to one of 10,000 songs; plain proportional shares
+ * would leave it a card or two. The square root sits between: that library
+ * gets about 6%. A list that runs short leaves the rest of its share to the
+ * others.
+ */
+export function shareBySize<T>(lists: T[][], counts: number[], size: number): T[] {
+  const weights = counts.map((n) => Math.sqrt(Math.max(0, n)))
+  const quotas = lists.map(() => 0)
+  let left = Math.min(size, lists.reduce((n, l) => n + l.length, 0))
+  // Hand out the remaining places among the lists with room, by weight, until
+  // they are gone. Each round fills at least one place, so it ends.
+  while (left > 0) {
+    const open = lists.map((_, i) => i).filter((i) => quotas[i]! < lists[i]!.length)
+    const total = open.reduce((n, i) => n + weights[i]!, 0)
+    let given = 0
+    for (const i of open) {
+      const share = total > 0 ? weights[i]! / total : 1 / open.length
+      const take = Math.min(Math.floor(left * share), lists[i]!.length - quotas[i]!)
+      quotas[i]! += take
+      given += take
+    }
+    if (given === 0) {
+      // Rounding left places nobody's share covers: one each, heaviest first.
+      for (const i of [...open].sort((a, b) => weights[b]! - weights[a]!)) {
+        if (given >= left) break
+        quotas[i]!++
+        given++
+      }
+    }
+    left -= given
+  }
+  return interleave(lists.map((l, i) => l.slice(0, quotas[i])))
 }
 
 /** Round-robin merge: first of each list, then second of each, and so on. */
@@ -276,6 +321,24 @@ export function spreadArtists(songs: Song[], recent: string[] = [], gap = 1): So
     if (window.length > gap) window.shift()
   }
   return out
+}
+
+/**
+ * A per-artist limit for a deck: `admit` says whether one more card by this
+ * song's artist fits (and counts it if so). `force` counts it regardless —
+ * for held-back cards that top up a deck that would otherwise run short.
+ */
+export function artistLimit(cap: number) {
+  const dealt = new Map<string, number>()
+  return {
+    admit(song: Song, force = false): boolean {
+      const artist = artistOf(song)
+      const n = dealt.get(artist) ?? 0
+      if (!force && n >= cap) return false
+      dealt.set(artist, n + 1)
+      return true
+    },
+  }
 }
 
 export function shuffle<T>(items: T[], rng: Rng): T[] {

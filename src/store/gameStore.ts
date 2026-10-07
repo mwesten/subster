@@ -3,6 +3,7 @@ import { initialState } from '../game/reducer'
 import type { GameSettings, GameState, Player } from '../game/types'
 import { createLocalTransport, type Transport } from '../net/local'
 import {
+  artistLimit,
   artistOf,
   buildDeckOrder,
   computeQuotas,
@@ -402,10 +403,22 @@ export const useGameStore = create<GameStore>((set, get) => {
         }
       }
 
+      // At most about a tenth of the deck by one artist. A library that is
+      // mostly one artist (a discography, a soundtrack) would otherwise fill
+      // the deck with it. Cards over the cap are held back, not dropped: once
+      // the producers are done, they top up a deck that would run short, so
+      // a selection that really is one artist still makes a game.
+      const perArtist = artistLimit(Math.max(2, Math.round(target / 10)))
+      const heldBack: Song[] = []
+
       const emittedIds = new Set<string>()
-      const emit = (card: Song) => {
+      const emit = (card: Song, uncapped = false) => {
         if (emittedIds.has(card.id)) return // random + canon producers can overlap
         if (isExcluded(card)) return
+        if (!perArtist.admit(card, uncapped)) {
+          heldBack.push(card)
+          return
+        }
         emittedIds.add(card.id)
         deckCount++
         if (!started) {
@@ -482,6 +495,11 @@ export const useGameStore = create<GameStore>((set, get) => {
 
       Promise.allSettled([produce(), produceCurated()]).finally(() => {
         if (producerToken === myToken) {
+          for (const card of heldBack) {
+            if (deckCount >= target) break
+            emit(card, true)
+          }
+          flushBatch()
           producing = false
           // Producers are done for good; a still-pending next turn now really
           // exhausts the deck (the reducer ends the game properly).

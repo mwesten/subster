@@ -126,6 +126,7 @@ interface SubsonicEnvelope {
     artists?: { index?: Array<{ artist?: Array<{ id: string | number; name?: string }> }> }
     genres?: { genre?: RawGenre[] }
     musicFolders?: { musicFolder?: Array<{ id: string | number; name?: string }> }
+    albumList2?: { album?: Array<{ songCount?: number }> }
     playlists?: { playlist?: RawPlaylist[] }
     playlist?: RawPlaylist & { entry?: RawSong[] }
   }
@@ -361,6 +362,34 @@ export async function getRandomSongs(
     musicFolderId: options.musicFolderId,
   })
   return (body.randomSongs?.song ?? []).map(toSong)
+}
+
+const ALBUM_PAGE = 500
+
+/**
+ * How many songs a library holds. Subsonic has no direct count, so it adds up
+ * the library's albums, a page of 500 at a time. A huge library stops at
+ * `maxPages` (5,000 albums by default) and reports what was counted: enough
+ * to know it is huge, which is all its callers need.
+ */
+export async function librarySongCount(
+  config: ServerConfig,
+  musicFolderId: string,
+  maxPages = 10,
+): Promise<number> {
+  let total = 0
+  for (let page = 0; page < maxPages; page++) {
+    const body = await apiFetch(config, 'getAlbumList2.view', {
+      type: 'alphabeticalByName',
+      size: ALBUM_PAGE,
+      offset: page * ALBUM_PAGE,
+      musicFolderId,
+    })
+    const albums = body.albumList2?.album ?? []
+    for (const album of albums) total += album.songCount ?? 0
+    if (albums.length < ALBUM_PAGE) break
+  }
+  return total
 }
 
 /**

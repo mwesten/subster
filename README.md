@@ -37,8 +37,11 @@ No physical cards, no accounts, **no backend** — just your phone and your own 
 - ✅ **Several servers**: save as many as you like and switch between them; each remembers its own
   libraries, playlist and genre
 - ✅ **Deck sources** — any combination of your libraries (e.g. Music + Soundtracks, skipping
-  Audiobooks), each given an equal share of the deck, or **any Subsonic playlist**: hand-picked lists play as-is (shuffled, file years, no ranking),
-  though the full pipeline can be re-enabled on top
+  Audiobooks), each weighted by the square root of its size, so a small library gets a fair share
+  without flooding the deck, or **any Subsonic playlist**: hand-picked lists play as-is (shuffled,
+  file years, no ranking), though the full pipeline can be re-enabled on top. No artist fills more
+  than about a tenth of a deck unless there is nothing else, and an artist's cards rotate through
+  the players
 - ✅ **Online-metadata modes** — *Full*, *No Deezer* (keeps MusicBrainz/Wikidata years, drops the
   one proprietary service), or *Offline*, where **only your own server is contacted**: no
   Deezer/MusicBrainz/Wikidata at all (guaranteed by tests), file years as-is, and the bundled

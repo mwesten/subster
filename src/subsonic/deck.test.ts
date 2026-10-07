@@ -7,6 +7,7 @@ import {
   interleave,
   isLiveVersion,
   isNonOriginalVersion,
+  artistLimit,
   spreadArtists,
   tierIndex,
   type ClassifiedSong,
@@ -202,5 +203,24 @@ describe('spreadArtists', () => {
 describe('interleave', () => {
   it('takes one from each list in turn, and lets a long list run on', () => {
     expect(interleave([['a1', 'a2', 'a3', 'a4'], ['b1'], ['c1', 'c2']])).toEqual(['a1', 'b1', 'c1', 'a2', 'c2', 'a3', 'a4'])
+  })
+})
+
+describe('artistLimit', () => {
+  const s = (id: string, artist: string, artists?: string[]): Song => ({ id, title: id, artist, artists })
+
+  it('admits up to the cap per artist, counting a joined credit as its main artist', () => {
+    const limit = artistLimit(2)
+    expect(limit.admit(s('1', 'A'))).toBe(true)
+    expect(limit.admit(s('2', 'a'))).toBe(true) // case doesn't make a new artist
+    expect(limit.admit(s('3', 'A • B', ['A', 'B']))).toBe(false)
+    expect(limit.admit(s('4', 'B'))).toBe(true)
+  })
+
+  it('lets a held-back card through when forced, and counts it', () => {
+    const limit = artistLimit(1)
+    limit.admit(s('1', 'A'))
+    expect(limit.admit(s('2', 'A'), true)).toBe(true)
+    expect(limit.admit(s('3', 'A'))).toBe(false)
   })
 })
