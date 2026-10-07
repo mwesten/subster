@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activePlayer, leaderboard, winner } from './selectors'
+import { activePlayer, deckRanOut, leaderboard, winner } from './selectors'
 import { initialState } from './reducer'
 import type { GameState, Player, TimelineCard } from './types'
 import type { Song } from '../subsonic/client'
@@ -49,5 +49,24 @@ describe('leaderboard', () => {
     const state = makeState(players)
     expect(leaderboard(state).map((p) => p.id)).toEqual(['p1', 'p2', 'p0'])
     expect(state.players.map((p) => p.id)).toEqual(['p0', 'p1', 'p2']) // untouched
+  })
+})
+
+describe('deckRanOut', () => {
+  const settings = { winTarget: 10, startTokens: 0, challengeGrace: false }
+
+  it('is true when the game ended below the target', () => {
+    const state = makeState([player('p0', 3), player('p1', 1)], { phase: 'gameover', winnerId: 'p0', settings })
+    expect(deckRanOut(state)).toBe(true)
+  })
+
+  it('is false for a real win', () => {
+    const state = makeState([player('p0', 10)], { phase: 'gameover', winnerId: 'p0', settings })
+    expect(deckRanOut(state)).toBe(false)
+  })
+
+  it('is false while the game is still running', () => {
+    const state = makeState([player('p0', 3)], { phase: 'placing', winnerId: null, settings })
+    expect(deckRanOut(state)).toBe(false)
   })
 })
