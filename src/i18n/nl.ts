@@ -4,7 +4,7 @@ import type { Dict } from './en'
 export const nl: Dict = {
   home: {
     tagline1: 'Raad het jaar. Bouw je tijdlijn.',
-    tagline2: 'Aangedreven door je eigen Subsonic bibliothek.',
+    tagline2: 'Aangedreven door je eigen Subsonic-bibliotheek.',
     newGame: 'Nieuw Spel',
     connectServer: 'Server verbinden',
     serverLabel: (name: string) => `Server: ${name}`,
