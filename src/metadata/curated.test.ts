@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { artistKey, curatedEntries, curatedKey, isCurated } from './curated'
+import curatedDict from './curated.json'
 
 describe('curated famous-songs canon', () => {
   it('bundles a large set (Billboard + greatest-songs + per-country #1s)', () => {
@@ -27,5 +28,25 @@ describe('curated famous-songs canon', () => {
 
   it('rejects unknown songs', () => {
     expect(isCurated('Some Local Band', 'An Obscure Track Nobody Knows')).toBe(false)
+  })
+
+  it('matches regional number ones that once had songwriter credits glued on', () => {
+    // Only in the German list; stored as "Skandal im SperrbezirkGünther Sigl" before.
+    expect(isCurated('Spider Murphy Gang', 'Skandal im Sperrbezirk')).toBe(true)
+    expect(isCurated('Rainhard Fendrich', 'Strada del sole')).toBe(true)
+  })
+
+  it('holds no titles with songwriter credits glued on (a scraping leftover)', () => {
+    // "Easy on MeAdele Atkins, Greg Kurstin": a title running straight into a
+    // capitalized name. Real titles that look like that are listed here.
+    const glued = /[a-zäöüß0-9!?).’…][A-ZÄÖÜ][a-zäöüß]+ [A-ZÄÖÜ][a-zäöüß]+(,|$)/
+    const legit = new Set(['MacArthur Park'])
+    const regions = curatedDict as Record<string, Record<string, string[]>>
+    const bad = Object.entries(regions).flatMap(([region, artists]) =>
+      Object.entries(artists).flatMap(([artist, titles]) =>
+        titles.filter((t) => glued.test(t) && !legit.has(t)).map((t) => `${region}: ${artist} – ${t}`),
+      ),
+    )
+    expect(bad).toEqual([])
   })
 })
