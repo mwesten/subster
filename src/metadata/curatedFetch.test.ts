@@ -45,6 +45,22 @@ describe('findCuratedSongs', () => {
     expect((await findCuratedSongs(config, opts)).map((s) => s.id)).toEqual(['new-id'])
   })
 
+  it('keeps searching new canon songs instead of locking onto the first finds', async () => {
+    const config = server('https://rotation.example')
+    getArtists.mockResolvedValue(['Queen'])
+    // Every Queen canon song is in the library.
+    search3.mockImplementation(async (_c, o) => [
+      { id: o.query, title: o.query.replace(/^Queen /, ''), artist: 'Queen' },
+    ])
+    const few = { want: 4, maxSearches: 50 }
+    const seen = new Set<string>()
+    for (let game = 0; game < 4; game++) {
+      for (const s of await findCuratedSongs(config, few)) seen.add(s.id)
+    }
+    // Known-first ordering returned the first game's songs forever.
+    expect(seen.size).toBeGreaterThan(4)
+  })
+
   it('caches misses, so a song known to be absent is not searched again', async () => {
     const config = server('https://miss.example')
     search3.mockResolvedValue([])

@@ -2,7 +2,7 @@ import type { ServerConfig } from '../store/configStore'
 import { getArtists, search3, type Song } from '../subsonic/client'
 import { JsonCache } from '../lib/cache'
 import { artistKey, curatedEntries, curatedKey } from './curated'
-import { shuffle } from '../subsonic/deck'
+import { interleave, shuffle } from '../subsonic/deck'
 
 /**
  * Locate famous-canon songs that actually exist in the library.
@@ -64,9 +64,16 @@ export async function findCuratedSongs(
       return { e, key, where, known: where.some((w) => w.known === true) }
     })
     .filter((c) => c.where.length > 0)
-  // Known hits first: their search is a near-sure find, so the budget goes to
-  // them before songs that may well be missing. (Stable sort keeps the shuffle.)
-  candidates.sort((a, b) => Number(b.known) - Number(a.known))
+  // Alternate known hits with songs not searched yet. A known hit is a
+  // near-sure find, so it keeps the budget productive; the unsearched ones
+  // keep the canon rotating. Searching known hits first instead locked every
+  // game onto the first game's finds: the search stops at `want`, so only
+  // those ever became known, and the rest of the library's canon was never
+  // looked at again.
+  const ordered = interleave([
+    candidates.filter((c) => c.known),
+    candidates.filter((c) => !c.known),
+  ])
 
   const lookup = async ({ e, key, where }: (typeof candidates)[number]): Promise<Song | null> => {
     for (const { scope } of where) {
@@ -88,7 +95,7 @@ export async function findCuratedSongs(
   }
 
   const found: Song[] = []
-  const budget = candidates.slice(0, opts.maxSearches)
+  const budget = ordered.slice(0, opts.maxSearches)
   for (let i = 0; i < budget.length && found.length < opts.want; i += CONCURRENCY) {
     const songs = await Promise.all(budget.slice(i, i + CONCURRENCY).map(lookup))
     for (const song of songs) if (song) found.push(song)
