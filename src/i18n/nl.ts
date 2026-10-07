@@ -5,7 +5,7 @@ export const nl: Dict = {
   home: {
     tagline1: 'Raad het jaar. Bouw je tijdlijn.',
     tagline2: 'Aangedreven door je eigen Subsonic-bibliotheek.',
-    newGame: 'Nieuw Spel',
+    newGame: 'Nieuw spel',
     connectServer: 'Server verbinden',
     serverLabel: (name: string) => `Server: ${name}`,
     serverSettings: 'Server instellingen',
