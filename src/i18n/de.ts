@@ -108,7 +108,9 @@ export const de: Dict = {
     noServer: 'Kein Server eingerichtet.',
     deckNetworkError: 'Server nicht erreichbar — prüfe die Adresse und dein Netzwerk.',
     notEnoughSongs: (n: number) =>
-      `Nur ${n} brauchbare Songs gefunden. Probiere eine andere Bibliothek oder eine leichtere Stufe.`,
+      `Nur ${n} brauchbare Songs gefunden. Probiere mehr oder andere Bibliotheken.`,
+    notEnoughRanked: (n: number, noDeezer: string, offline: string) =>
+      `Nur ${n} Songs haben den Bekanntheitsfilter passiert. Bei einer kleinen oder eher unbekannten Bibliothek probiere „${noDeezer}“ oder „${offline}“ oder eine leichtere Stufe.`,
     placePrompt: 'Wohin gehört der Song auf deiner Zeitleiste?',
     skip: 'Song überspringen (1 Token)',
     lockIn: 'Platzierung bestätigen',
@@ -167,6 +169,10 @@ export const de: Dict = {
     rematch: 'Revanche',
     playAgain: 'Nochmal spielen',
     home: 'Start',
+    deckRanOut: 'Der Kartenstapel war leer, bevor jemand das Ziel erreicht hat.',
+    deckRanOutRanked: (noDeezer: string, offline: string) =>
+      `Nur wenige Songs haben den Bekanntheitsfilter passiert. Bei einer kleinen oder eher unbekannten Bibliothek probiere „${noDeezer}“ oder „${offline}“ in den Spieleinstellungen.`,
+    deckRanOutSmall: 'In deiner Auswahl gibt es keine weiteren Songs. Wähle mehr Bibliotheken oder weniger Karten zum Sieg.',
   },
   a11y: {
     back: 'Zurück',
