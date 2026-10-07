@@ -8,7 +8,7 @@ export const nl: Dict = {
     newGame: 'Nieuw spel',
     connectServer: 'Server verbinden',
     serverLabel: (name: string) => `Server: ${name}`,
-    serverSettings: 'Server instellingen',
+    serverSettings: 'Serverinstellingen',
     footer: 'Muzikale tijdreis · geen backend · geen kaartjes',
     language: 'Taal',
   },
