@@ -45,7 +45,7 @@ export const nl: Dict = {
       'Gecachte opzoekingen bij Deezer, MusicBrainz en Wikidata verlopen nooit. Wis ze wanneer een verkeerd jaar of een verkeerde ranking bij de bron is gecorrigeerd — bij de volgende deck-opbouw wordt alles opnieuw opgehaald. De serververbinding en je instellingen blijven bewaard.',
   },
   setup: {
-    title: 'Nieuw Spel',
+    title: 'Nieuw spel',
     players: 'Spelers',
     addPlayer: '+ Speler toevoegen',
     playerN: (n: number) => `Speler ${n}`,
