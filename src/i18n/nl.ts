@@ -75,7 +75,7 @@ export const nl: Dict = {
     diffDeep: 'Verborgen parels',
     diffDeepHint: 'Meer obscure nummers',
     popularityNote: 'Populariteit komt van Deezer — de buitenwereld, niet je eigen afspeeltellingen.',
-    yearRange: 'Jaar-bereik',
+    yearRange: 'Jaarbereik',
     anyYear: 'Alle',
     genre: 'Genre',
     anyGenre: 'Alle genres',
