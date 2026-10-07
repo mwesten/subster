@@ -3,6 +3,7 @@ import { initialState } from '../game/reducer'
 import type { GameSettings, GameState, Player } from '../game/types'
 import { createLocalTransport, type Transport } from '../net/local'
 import {
+  artistOf,
   buildDeckOrder,
   computeQuotas,
   CURATED_RANK,
@@ -372,9 +373,13 @@ export const useGameStore = create<GameStore>((set, get) => {
       let deckCount = 0
       const initial: Song[] = []
       let batch: Song[] = []
-      // Artist of the last card dealt so far — so batches don't repeat an
-      // artist across the seam (no two same-artist songs back to back).
-      let lastArtist: string | undefined
+      // Artists of the last cards dealt, one per player — so batches keep an
+      // artist's cards rotating through the players across the seam too.
+      const artistGap = playerNames.length
+      let recentArtists: string[] = []
+      const remember = (dealt: Song[]) => {
+        recentArtists = [...recentArtists, ...dealt.map(artistOf)].slice(-artistGap)
+      }
       let signalStart: () => void = () => {}
       const startSignal = new Promise<void>((r) => (signalStart = r))
 
@@ -385,9 +390,9 @@ export const useGameStore = create<GameStore>((set, get) => {
           decade: Math.floor((s.year as number) / 10) * 10,
           known: true,
         }))
-        const ordered = spreadArtists(buildDeckOrder(classified, 1, rng), lastArtist)
+        const ordered = spreadArtists(buildDeckOrder(classified, 1, rng), recentArtists, artistGap)
         batch = []
-        if (ordered.length) lastArtist = ordered[ordered.length - 1]?.artist
+        remember(ordered)
         transport?.dispatch({ type: 'ADD_CARDS', songs: ordered })
         // A player was waiting on an empty deck — resume their next turn now.
         if (pendingNextTurn) {
@@ -511,8 +516,8 @@ export const useGameStore = create<GameStore>((set, get) => {
       }))
 
       started = true
-      const deckStart = spreadArtists([...initial])
-      lastArtist = deckStart[deckStart.length - 1]?.artist
+      const deckStart = spreadArtists([...initial], [], artistGap)
+      remember(deckStart)
 
       transport?.destroy()
       transport = createLocalTransport(initialState())

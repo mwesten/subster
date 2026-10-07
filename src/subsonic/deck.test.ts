@@ -168,8 +168,29 @@ describe('spreadArtists', () => {
   })
 
   it('guards the seam against the previous batch', () => {
-    const out = spreadArtists([s('1', 'A'), s('2', 'B')], 'A')
+    const out = spreadArtists([s('1', 'A'), s('2', 'B')], ['A'])
     expect(out[0]?.artist).toBe('B') // first must differ from prevArtist 'A'
+  })
+
+  it('keeps an artist `gap` cards apart, so with two players it alternates between them', () => {
+    // A third of the deck by one artist: adjacent-only spreading made this
+    // A x A x A x, every A to the same player.
+    const songs = ['A', 'A', 'A', 'B', 'C', 'D', 'E', 'F', 'G'].map((a, i) => s(String(i), a))
+    const out = spreadArtists(songs, [], 2)
+    const at = out.flatMap((x, i) => (x.artist === 'A' ? [i] : []))
+    expect(at).toEqual([0, 3, 6])
+    expect(new Set(at.map((i) => i % 2))).toEqual(new Set([0, 1]))
+  })
+
+  it('falls back to just avoiding the previous artist when the window cannot be cleared', () => {
+    const out = spreadArtists([s('1', 'A'), s('2', 'A'), s('3', 'B')], [], 2)
+    expect(artists(out)).toEqual(['A', 'B', 'A'])
+  })
+
+  it('tells artists apart by the main one of several credited', () => {
+    const joined: Song = { ...s('1', 'A • B'), artists: ['A', 'B'] }
+    const out = spreadArtists([s('0', 'A'), joined, s('2', 'C')])
+    expect(out.map((x) => x.id)).toEqual(['0', '2', '1'])
   })
 
   it('leaves an unavoidable run intact (more of one artist than gaps)', () => {

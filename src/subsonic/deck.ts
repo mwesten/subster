@@ -1,5 +1,5 @@
 import type { ServerConfig } from '../store/configStore'
-import { getRandomSongs, type Song } from './client'
+import { getRandomSongs, mainArtist, type Song } from './client'
 
 export type Rng = () => number
 
@@ -236,27 +236,44 @@ export function interleave<T>(lists: T[][]): T[] {
   return out
 }
 
+/** How spreadArtists tells artists apart: the main one, ignoring case. */
+export function artistOf(song: Song): string {
+  return mainArtist(song).toLowerCase().trim()
+}
+
 /**
- * Reorder so no two adjacent songs share an artist, when avoidable. Greedy:
- * walk left→right and, whenever a song repeats the previous artist, pull the
- * nearest later song by a different artist into its place. `prevArtist` guards
- * the seam against whatever was dealt just before this batch. Runs of a single
- * artist longer than the rest allows are left as-is (unavoidable).
+ * Reorder so the same artist comes back at most every `gap + 1` cards, when
+ * avoidable. Greedy: walk left→right and, whenever a song's artist is among
+ * the last `gap` dealt, pull the nearest later song that isn't into its
+ * place. `recent` holds the artists dealt just before this batch, so the
+ * seam is guarded too.
+ *
+ * The game passes the number of players as `gap`. Merely keeping an artist
+ * off adjacent cards (gap 1) dealt it to the same player every time with two
+ * players: an artist filling a third of the deck came out as A x A x A x, and
+ * turns alternate. With gap = players, its cards rotate through everyone.
+ *
+ * When no later song clears the whole window, at least the previous card's
+ * artist is avoided; a run longer than the rest allows is left as-is.
  */
-export function spreadArtists(songs: Song[], prevArtist?: string): Song[] {
+export function spreadArtists(songs: Song[], recent: string[] = [], gap = 1): Song[] {
   const out = [...songs]
-  const artistOf = (s: Song) => (s.artist ?? '').toLowerCase().trim()
-  let last = (prevArtist ?? '').toLowerCase().trim()
+  const window = recent.map((a) => a.toLowerCase().trim()).slice(-gap)
   for (let i = 0; i < out.length; i++) {
-    const cur = out[i] as Song
-    if (artistOf(cur) === last) {
-      const j = out.findIndex((s, k) => k > i && artistOf(s) !== last)
+    const blocked = (s: Song) => window.includes(artistOf(s))
+    const previous = window[window.length - 1]
+    if (blocked(out[i] as Song)) {
+      let j = out.findIndex((s, k) => k > i && !blocked(s))
+      if (j === -1 && artistOf(out[i] as Song) === previous) {
+        j = out.findIndex((s, k) => k > i && artistOf(s) !== previous)
+      }
       if (j !== -1) {
         const [moved] = out.splice(j, 1)
         out.splice(i, 0, moved as Song)
       }
     }
-    last = artistOf(out[i] as Song)
+    window.push(artistOf(out[i] as Song))
+    if (window.length > gap) window.shift()
   }
   return out
 }
