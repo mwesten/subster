@@ -19,7 +19,7 @@ export const nl: Dict = {
     url: 'Server-URL',
     localUrl: 'Lokaal adres (optioneel)',
     localUrlHint:
-      'Een LAN adres (vb: http://192.168.1.20:4533) wordt automatisch gebruikt als deze benaderbaar is — thuis sneller, onderweg wordt de Server-URL gebruikt.',
+      'Een LAN-adres (vb: http://192.168.1.20:4533) wordt automatisch gebruikt als deze benaderbaar is — thuis sneller, onderweg wordt de Server-URL gebruikt.',
     username: 'Gebruikersnaam',
     password: 'Wachtwoord',
     testing: 'Verbinding testen…',
