@@ -42,6 +42,20 @@ export function hasWon(player: Player, winTarget: number): boolean {
   return player.timeline.length >= winTarget
 }
 
+/** Allowed range for the number of cards needed to win. */
+export const MIN_WIN_TARGET = 3
+export const MAX_WIN_TARGET = 20
+
+/**
+ * Turn what the player typed into a valid win target. Unparseable input (an
+ * emptied field) keeps `fallback`; anything else is clamped into range.
+ */
+export function parseWinTarget(input: string, fallback: number): number {
+  const n = parseInt(input, 10)
+  if (Number.isNaN(n)) return fallback
+  return Math.max(MIN_WIN_TARGET, Math.min(MAX_WIN_TARGET, n))
+}
+
 /** Maximum tokens a player may hold. */
 export const MAX_TOKENS = 5
 

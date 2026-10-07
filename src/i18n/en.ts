@@ -74,6 +74,8 @@ export const en = {
     metaOffline: 'Offline',
     metaOfflineHint: 'Only your server is contacted — file years are used as-is.',
     cardsToWin: 'Cards to win',
+    cardsFewer: 'Fewer cards',
+    cardsMore: 'More cards',
     difficulty: 'Difficulty',
     diffHits: 'Hits',
     diffHitsHint: 'Only very famous',

@@ -14,6 +14,7 @@ import {
   type Playlist,
 } from '../../subsonic/client'
 import type { MetadataMode } from '../../subsonic/deck'
+import { MAX_WIN_TARGET, MIN_WIN_TARGET, parseWinTarget } from '../../game/rules'
 import { useT } from '../../i18n'
 
 export function GameSetup() {
@@ -33,6 +34,10 @@ export function GameSetup() {
     saved.names.length ? saved.names : [t.setup.playerN(1), t.setup.playerN(2)],
   )
   const [winTarget, setWinTarget] = useState(saved.winTarget)
+  // What's in the field while it's being edited. Clamping on every keystroke
+  // would turn the "2" of "20" into the minimum before the "0" arrives, so the
+  // value is only validated once editing ends (#19).
+  const [winDraft, setWinDraft] = useState<string | null>(null)
   const [difficulty, setDifficulty] = useState<'hits' | 'balanced' | 'deep'>(saved.difficulty)
   const [challengeGrace, setChallengeGrace] = useState(saved.challengeGrace)
   const [trigger, setTrigger] = useState<'countdown' | 'instant'>(saved.trigger)
@@ -115,11 +120,24 @@ export function GameSetup() {
     }
   }
 
+  function commitWinTarget(): number {
+    const value = winDraft === null ? winTarget : parseWinTarget(winDraft, winTarget)
+    setWinTarget(value)
+    setWinDraft(null)
+    return value
+  }
+
+  function stepWinTarget(delta: number) {
+    const value = commitWinTarget() + delta
+    setWinTarget(Math.max(MIN_WIN_TARGET, Math.min(MAX_WIN_TARGET, value)))
+  }
+
   function start() {
+    const target = commitWinTarget()
     // Remember these choices for next time.
     savePrefs({
       names,
-      winTarget,
+      winTarget: target,
       difficulty,
       challengeGrace,
       trigger,
@@ -134,7 +152,7 @@ export function GameSetup() {
     })
     startGame({
       playerNames: names,
-      settings: { winTarget, startTokens: 2, challengeGrace },
+      settings: { winTarget: target, startTokens: 2, challengeGrace },
       deck: {
         musicFolderId:
           playlistId || musicFolderId === 'all' ? undefined : musicFolderId || undefined,
@@ -241,17 +259,36 @@ export function GameSetup() {
             </label>
           )}
 
-          <label className="flex items-center justify-between gap-4">
-            <span>{t.setup.cardsToWin}</span>
-            <input
-              type="number"
-              min={3}
-              max={20}
-              className="w-20 rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-center outline-none focus:border-brand-500"
-              value={winTarget}
-              onChange={(e) => setWinTarget(Math.max(3, Math.min(20, Number(e.target.value) || 10)))}
-            />
-          </label>
+          <div className="flex items-center justify-between gap-4">
+            <label htmlFor="win-target">{t.setup.cardsToWin}</label>
+            <div className="flex items-center gap-2">
+              <button
+                className="h-10 w-10 rounded-xl bg-slate-800 text-lg font-semibold text-slate-200 ring-1 ring-inset ring-slate-700 disabled:opacity-40"
+                onClick={() => stepWinTarget(-1)}
+                disabled={winDraft === null && winTarget <= MIN_WIN_TARGET}
+                aria-label={t.setup.cardsFewer}
+              >
+                −
+              </button>
+              <input
+                id="win-target"
+                inputMode="numeric"
+                className="w-16 rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-center outline-none focus:border-brand-500"
+                value={winDraft ?? String(winTarget)}
+                onChange={(e) => setWinDraft(e.target.value.replace(/\D/g, '').slice(0, 2))}
+                onBlur={commitWinTarget}
+                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+              />
+              <button
+                className="h-10 w-10 rounded-xl bg-slate-800 text-lg font-semibold text-slate-200 ring-1 ring-inset ring-slate-700 disabled:opacity-40"
+                onClick={() => stepWinTarget(1)}
+                disabled={winDraft === null && winTarget >= MAX_WIN_TARGET}
+                aria-label={t.setup.cardsMore}
+              >
+                +
+              </button>
+            </div>
+          </div>
 
           <div className="flex flex-col gap-1.5">
             <span>{t.setup.onlineMeta}</span>

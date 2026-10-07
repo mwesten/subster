@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { addTokens, insertSorted, isPlacementCorrect, MAX_TOKENS, slotBounds } from './rules'
+import {
+  addTokens,
+  insertSorted,
+  isPlacementCorrect,
+  MAX_TOKENS,
+  MAX_WIN_TARGET,
+  MIN_WIN_TARGET,
+  parseWinTarget,
+  slotBounds,
+} from './rules'
 import type { TimelineCard } from './types'
 import type { Song } from '../subsonic/client'
 
@@ -68,5 +77,21 @@ describe('addTokens', () => {
     expect(addTokens(0, -1)).toBe(0)
     expect(addTokens(2, -5)).toBe(0)
     expect(addTokens(2, -1)).toBe(1)
+  })
+})
+
+describe('parseWinTarget', () => {
+  it('accepts values in range', () => {
+    expect(parseWinTarget('20', 10)).toBe(20)
+    expect(parseWinTarget('7', 10)).toBe(7)
+  })
+
+  it('clamps values out of range', () => {
+    expect(parseWinTarget('2', 10)).toBe(MIN_WIN_TARGET)
+    expect(parseWinTarget('99', 10)).toBe(MAX_WIN_TARGET)
+  })
+
+  it('keeps the fallback for an emptied field', () => {
+    expect(parseWinTarget('', 12)).toBe(12)
   })
 })
