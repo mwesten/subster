@@ -1,4 +1,4 @@
-import type { RevealKind } from '../game/types'
+import type { Dict } from './en'
 
 /** Dutch translation. Must match the `Dict` shape (compile-checked). */
 export const nl: Dict = {
