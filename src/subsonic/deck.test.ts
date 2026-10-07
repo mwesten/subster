@@ -4,6 +4,7 @@ import {
   computeQuotas,
   deckFloor,
   DIFFICULTY,
+  interleave,
   isLiveVersion,
   isNonOriginalVersion,
   spreadArtists,
@@ -174,5 +175,11 @@ describe('spreadArtists', () => {
   it('leaves an unavoidable run intact (more of one artist than gaps)', () => {
     const out = spreadArtists([s('1', 'A'), s('2', 'A'), s('3', 'A')])
     expect(artists(out)).toEqual(['A', 'A', 'A'])
+  })
+})
+
+describe('interleave', () => {
+  it('takes one from each list in turn, and lets a long list run on', () => {
+    expect(interleave([['a1', 'a2', 'a3', 'a4'], ['b1'], ['c1', 'c2']])).toEqual(['a1', 'b1', 'c1', 'a2', 'c2', 'a3', 'a4'])
   })
 })

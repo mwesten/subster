@@ -18,7 +18,11 @@ import type { MetadataMode } from '../subsonic/deck'
  */
 export interface ServerPrefs {
   genre: string
-  musicFolderId: string
+  /**
+   * Libraries the deck draws from: empty = all of them, null = never chosen
+   * (Game Setup then picks a sensible one).
+   */
+  musicFolderIds: string[] | null
   /** Non-empty = build the deck from this playlist instead of a library. */
   playlistId: string
   metadataMode: MetadataMode
@@ -26,7 +30,7 @@ export interface ServerPrefs {
 
 export const DEFAULT_SERVER_PREFS: ServerPrefs = {
   genre: '',
-  musicFolderId: '',
+  musicFolderIds: null,
   playlistId: '',
   metadataMode: 'full',
 }
@@ -78,33 +82,55 @@ export const useSetupStore = create<SetupState>()(
     }),
     {
       name: 'subster.setup',
-      version: 2,
-      migrate: (persisted, version) => {
-        const state = persisted as SetupState
-        if (version >= 2) return state
-        // v0 held a boolean `onlineMeta` (all-or-nothing, so it maps onto the
-        // two outer modes); v0 and v1 both kept the deck source at the top
-        // level, belonging to whichever server was active at the time.
-        const old = (state?.prefs ?? {}) as Partial<SetupPrefs> &
-          Partial<ServerPrefs> & { onlineMeta?: boolean; serverId?: string }
-        const { onlineMeta, serverId, genre, musicFolderId, playlistId, metadataMode, ...rest } = old
-        const source: ServerPrefs = {
-          genre: genre ?? '',
-          musicFolderId: musicFolderId ?? '',
-          playlistId: playlistId ?? '',
-          metadataMode: metadataMode ?? (onlineMeta === false ? 'offline' : 'full'),
-        }
-        return {
-          ...state,
-          prefs: {
-            ...DEFAULT_PREFS,
-            ...rest,
-            // Without a server id there is no way to tell whose source it was,
-            // so it is dropped rather than misattributed.
-            byServer: serverId ? { [serverId]: source } : {},
-          },
-        }
-      },
+      version: 3,
+      migrate: migrateSetup,
     },
   ),
 )
+
+export function migrateSetup(persisted: unknown, version: number): SetupState {
+  let state = persisted as SetupState
+  if (version < 2) state = toV2(state)
+  if (version < 3) state = toV3(state)
+  return state
+}
+
+/** v1 and v2 kept a single library: '' = never chosen, 'all' = every one. */
+type V2ServerPrefs = Omit<ServerPrefs, 'musicFolderIds'> & { musicFolderId?: string }
+
+function toV3(state: SetupState): SetupState {
+  const byServer = (state?.prefs?.byServer ?? {}) as Record<string, V2ServerPrefs>
+  const migrated: Record<string, ServerPrefs> = {}
+  for (const [id, { musicFolderId, ...rest }] of Object.entries(byServer)) {
+    migrated[id] = {
+      ...rest,
+      musicFolderIds: !musicFolderId ? null : musicFolderId === 'all' ? [] : [musicFolderId],
+    }
+  }
+  return { ...state, prefs: { ...DEFAULT_PREFS, ...state?.prefs, byServer: migrated } }
+}
+
+function toV2(state: SetupState): SetupState {
+  // v0 held a boolean `onlineMeta` (all-or-nothing, so it maps onto the
+  // two outer modes); v0 and v1 both kept the deck source at the top
+  // level, belonging to whichever server was active at the time.
+  const old = (state?.prefs ?? {}) as Partial<SetupPrefs> &
+    Partial<V2ServerPrefs> & { onlineMeta?: boolean; serverId?: string }
+  const { onlineMeta, serverId, genre, musicFolderId, playlistId, metadataMode, ...rest } = old
+  const source: V2ServerPrefs = {
+    genre: genre ?? '',
+    musicFolderId: musicFolderId ?? '',
+    playlistId: playlistId ?? '',
+    metadataMode: metadataMode ?? (onlineMeta === false ? 'offline' : 'full'),
+  }
+  return {
+    ...state,
+    prefs: {
+      ...DEFAULT_PREFS,
+      ...rest,
+      // Without a server id there is no way to tell whose source it was,
+      // so it is dropped rather than misattributed.
+      byServer: (serverId ? { [serverId]: source } : {}) as unknown as Record<string, ServerPrefs>,
+    },
+  }
+}

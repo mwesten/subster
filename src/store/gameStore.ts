@@ -290,7 +290,7 @@ export const useGameStore = create<GameStore>((set, get) => {
           pool = shuffle(
             await fetchCandidates(server, {
               size: clamp(Math.round(target * 3.5), 160, 300),
-              musicFolderId: deck.musicFolderId,
+              musicFolderIds: deck.musicFolderIds,
               genre: deck.genre,
             }),
             rng,
@@ -398,7 +398,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         let curatedSongs: Song[] = []
         try {
           curatedSongs = await findCuratedSongs(server, {
-            musicFolderId: deck.musicFolderId,
+            musicFolderIds: deck.musicFolderIds,
             want: target,
             maxSearches: 120,
           })

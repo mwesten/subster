@@ -35,9 +35,9 @@ No physical cards, no accounts, **no backend** — just your phone and your own 
   Token auth by default, with an automatic fallback to legacy password auth for servers that
   refuse it
 - ✅ **Several servers**: save as many as you like and switch between them; each remembers its own
-  library, playlist and genre
-- ✅ **Deck sources** — a music folder ("All libraries" included, e.g. skip your Audiobooks library)
-  or **any Subsonic playlist**: hand-picked lists play as-is (shuffled, file years, no ranking),
+  libraries, playlist and genre
+- ✅ **Deck sources** — any combination of your libraries (e.g. Music + Soundtracks, skipping
+  Audiobooks), each given an equal share of the deck, or **any Subsonic playlist**: hand-picked lists play as-is (shuffled, file years, no ranking),
   though the full pipeline can be re-enabled on top
 - ✅ **Online-metadata modes** — *Full*, *No Deezer* (keeps MusicBrainz/Wikidata years, drops the
   one proprietary service), or *Offline*, where **only your own server is contacted**: no

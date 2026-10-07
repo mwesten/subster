@@ -28,44 +28,63 @@ const CONCURRENCY = 4
 
 export async function findCuratedSongs(
   config: ServerConfig,
-  opts: { musicFolderId?: string; want: number; maxSearches: number },
+  opts: { musicFolderIds?: string[]; want: number; maxSearches: number },
 ): Promise<Song[]> {
-  const folderId = opts.musicFolderId ?? ''
-  let libArtists: Set<string>
-  try {
-    libArtists = new Set((await getArtists(config, opts.musicFolderId)).map(artistKey))
-  } catch {
-    return []
-  }
+  // Subsonic scopes a search to one library at a time, so with several chosen
+  // each is a scope of its own; `undefined` searches every library.
+  const scopes = opts.musicFolderIds?.length ? opts.musicFolderIds : [undefined]
+  // Which scopes hold each artist — a canon song is then searched for only
+  // where its artist actually is, not once per library.
+  const artistScopes = new Map<string, Array<string | undefined>>()
+  const artistLists = await Promise.allSettled(scopes.map((f) => getArtists(config, f)))
+  if (artistLists.every((r) => r.status === 'rejected')) return []
+  artistLists.forEach((r, i) => {
+    if (r.status !== 'fulfilled') return
+    for (const name of r.value) {
+      const k = artistKey(name)
+      const list = artistScopes.get(k) ?? []
+      if (!list.includes(scopes[i])) list.push(scopes[i])
+      artistScopes.set(k, list)
+    }
+  })
 
-  const cacheKey = (key: string) => `${config.baseUrl}|${folderId}|${key}`
+  const cacheKey = (scope: string | undefined, key: string) =>
+    `${config.baseUrl}|${scope ?? ''}|${key}`
   const candidates = shuffle(
-    curatedEntries.filter((e) => libArtists.has(artistKey(e.artist))),
+    curatedEntries.filter((e) => artistScopes.has(artistKey(e.artist))),
     Math.random,
   )
     .map((e) => {
       const key = curatedKey(e.artist, e.title)
-      return { e, key, known: inLibraryCache.get(cacheKey(key)) }
+      const where = (artistScopes.get(artistKey(e.artist)) ?? [])
+        .map((scope) => ({ scope, known: inLibraryCache.get(cacheKey(scope, key)) }))
+        .filter((w) => w.known !== false)
+        // A scope it is known to be in goes first.
+        .sort((a, b) => Number(b.known === true) - Number(a.known === true))
+      return { e, key, where, known: where.some((w) => w.known === true) }
     })
-    .filter((c) => c.known !== false)
+    .filter((c) => c.where.length > 0)
   // Known hits first: their search is a near-sure find, so the budget goes to
   // them before songs that may well be missing. (Stable sort keeps the shuffle.)
-  candidates.sort((a, b) => Number(b.known === true) - Number(a.known === true))
+  candidates.sort((a, b) => Number(b.known) - Number(a.known))
 
-  const lookup = async ({ e, key }: (typeof candidates)[number]): Promise<Song | null> => {
-    let hits: Song[]
-    try {
-      hits = await search3(config, {
-        query: `${e.artist} ${e.title}`,
-        songCount: 5,
-        musicFolderId: opts.musicFolderId,
-      })
-    } catch {
-      return null // transient failure: don't cache a miss
+  const lookup = async ({ e, key, where }: (typeof candidates)[number]): Promise<Song | null> => {
+    for (const { scope } of where) {
+      let hits: Song[]
+      try {
+        hits = await search3(config, {
+          query: `${e.artist} ${e.title}`,
+          songCount: 5,
+          musicFolderId: scope,
+        })
+      } catch {
+        return null // transient failure: don't cache a miss
+      }
+      const song = hits.find((s) => curatedKey(s.artist, s.title) === key) ?? null
+      inLibraryCache.set(cacheKey(scope, key), song !== null)
+      if (song) return song
     }
-    const song = hits.find((s) => curatedKey(s.artist, s.title) === key) ?? null
-    inLibraryCache.set(cacheKey(key), song !== null)
-    return song
+    return null
   }
 
   const found: Song[] = []
