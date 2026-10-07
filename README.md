@@ -120,6 +120,47 @@ if one is missing.
 translation as a PR for you to review: a native speaker reading over a draft is quicker than
 translating from scratch, and catches what a machine gets wrong.
 
+## Adding a country's hit list
+
+Besides Deezer popularity, Subster knows which songs are famous from a bundled list in
+[`src/metadata/curated.json`](src/metadata/curated.json). Songs on it that are in your library are
+boosted into the deck, and in the offline modes the list is the only popularity signal there is. It
+holds an international core (`intl`: Billboard Year-End Hot 100 and songs on several "greatest
+songs" lists) plus the **#1 singles of each country** it covers, currently Germany (`de`), Austria
+(`at`) and Switzerland (`ch`). If hits from your country are missing, a PR adding it is welcome.
+
+**The format** is one object per country, keyed by its lowercase
+[ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) code, mapping each artist
+to their titles:
+
+```json
+{
+  "intl": { "…": ["…"] },
+  "nl": {
+    "Some Artist": ["Their First #1", "Their Second #1"],
+    "Another Artist feat. Guest": ["A Duet"]
+  }
+}
+```
+
+- Write artist and title as the chart lists them. Matching against your library ignores case,
+  punctuation, a leading "The", "feat." credits and suffixes such as "(Remastered)", so there is
+  no need to normalize them yourself.
+- Each title appears once per artist. A song that is also in another country's list is fine.
+- Watch for scraping debris: footnote markers (`[3]`) and songwriter credits that end up glued to
+  the title (`"Easy on MeAdele Atkins, Greg Kurstin"`). A title like that never matches.
+
+**Sources** must be plain chart facts, e.g. Wikipedia's "List of number-one singles in …" pages
+or the official chart archive for that country. Which song was #1 when is a fact, not anyone's
+creative work. Don't copy a curated "best of" list from a single publication, since that
+selection is somebody's own work.
+
+**Check it:** `npm test` confirms the file still parses and the existing matches still work.
+
+**Not comfortable with a PR?** Open an issue naming the country and, if you know one, a good
+source. We can put the list together as a PR for you to check against what you know of your
+country's charts.
+
 ## How it connects to Subsonic
 
 On first launch you enter your server URL, username, and password. Normally the password is **not
