@@ -263,6 +263,12 @@ export function reducer(state: GameState, action: GameAction): GameState {
       // Same invariant as START: only yeared songs may enter the deck.
       return { ...state, deck: [...state.deck, ...action.songs.filter((s) => (s.year ?? 0) > 0)] }
 
+    case 'DROP_CARDS': {
+      // Only cards still to come: drawn ones are on a timeline or in play.
+      const drop = new Set(action.ids)
+      return { ...state, deck: state.deck.filter((s, i) => i < state.deckIndex || !drop.has(s.id)) }
+    }
+
     case 'NEXT_TURN': {
       if (state.phase === 'gameover') return state
       // A win was decided on the just-revealed card: end the game now.

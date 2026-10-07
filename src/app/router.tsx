@@ -6,6 +6,7 @@ import { ServerSetup } from './screens/ServerSetup'
 import { GameSetup } from './screens/GameSetup'
 import { Game } from './screens/Game'
 import { Winner } from './screens/Winner'
+import { Exclusions } from './screens/Exclusions'
 import { useGameStore } from '../store/gameStore'
 
 // Hash routing keeps deep links working when Subster is hosted as static files
@@ -16,6 +17,7 @@ export const router = createHashRouter([
   { path: '/setup', element: <GameSetup /> },
   { path: '/game', element: <Game /> },
   { path: '/winner', element: <Winner /> },
+  { path: '/exclusions', element: <Exclusions /> },
 ])
 
 // Android back gesture: without a listener Capacitor closes the activity.
@@ -48,6 +50,9 @@ if (Capacitor.isNativePlatform()) {
       // Game already decided — same as the Home button.
       useGameStore.getState().quit()
       void router.navigate('/')
+    } else if (path === '/exclusions') {
+      // Opened from Game Setup — go back there, not all the way home.
+      void router.navigate('/setup')
     } else if (path === '/') {
       // Home: background the app (Android default), don't kill it.
       void CapApp.minimizeApp()

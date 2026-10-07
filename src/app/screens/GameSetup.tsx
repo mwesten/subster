@@ -14,6 +14,7 @@ import {
   type Playlist,
 } from '../../subsonic/client'
 import type { MetadataMode } from '../../subsonic/deck'
+import { useExclusionStore } from '../../store/exclusionStore'
 import { useT } from '../../i18n'
 
 export function GameSetup() {
@@ -23,6 +24,7 @@ export function GameSetup() {
   const savePrefs = useSetupStore((s) => s.savePrefs)
   const activeServerId = useActiveServer()?.id
   const t = useT()
+  const exclusionCount = useExclusionStore((s) => s.items.length)
 
   // Seed from the last-used setup (persisted), falling back to localized
   // defaults. The deck source is remembered per server, since a library,
@@ -126,8 +128,9 @@ export function GameSetup() {
     setMusicFolderIds(next.length === folders.length ? [] : next)
   }
 
-  function start() {
-    // Remember these choices for next time.
+  // Remember these choices for next time — and before leaving for the
+  // exclusions screen, which remounts this one from the saved prefs.
+  function remember() {
     savePrefs({
       names,
       winTarget,
@@ -143,6 +146,10 @@ export function GameSetup() {
         ? { ...saved.byServer, [activeServerId]: { genre, musicFolderIds, playlistId, metadataMode } }
         : saved.byServer,
     })
+  }
+
+  function start() {
+    remember()
     startGame({
       playerNames: names,
       settings: { winTarget, startTokens: 2, challengeGrace },
@@ -356,6 +363,18 @@ export function GameSetup() {
               </select>
             </label>
           )}
+
+          <button
+            type="button"
+            className="flex items-center justify-between gap-3 text-left"
+            onClick={() => {
+              remember()
+              navigate('/exclusions')
+            }}
+          >
+            <span>{t.setup.exclusions}</span>
+            <span className="text-slate-400">{t.setup.exclusionsCount(exclusionCount)} →</span>
+          </button>
 
           <div className="flex items-center justify-between gap-3">
             <button type="button" className="flex-1 text-left" onClick={() => setChallengeGrace((v) => !v)}>

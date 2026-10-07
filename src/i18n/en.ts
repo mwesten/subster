@@ -98,6 +98,8 @@ export const en = {
     randomStartHint: 'Begin somewhere in the song instead of at 0:00.',
     lockOnEnd: 'Lock on playback end',
     lockOnEndHint: 'A 5s countdown to place; when playback ends the placement locks (no placement = a miss).',
+    exclusions: 'Exclusions',
+    exclusionsCount: (n: number) => (n ? `${n} excluded` : 'none'),
     start: 'Start game',
   },
   game: {
@@ -146,6 +148,9 @@ export const en = {
     removedFromPlaylist: 'removed',
     addFailed: 'not allowed',
     noPlaylists: 'No playlists on the server yet.',
+    exclude: 'Never deal this again',
+    excludeSong: 'This song',
+    excludeArtist: (name: string) => `Everything by ${name}`,
     namedOn: '✓ Named title + artist (+1 token)',
     namedOff: (name: string) => `🎤 ${name} named title + artist?`,
     nextPlayer: 'Next player →',
@@ -168,6 +173,23 @@ export const en = {
           return `${name} challenged wrong — lost a token`
       }
     },
+  },
+  exclusions: {
+    title: 'Exclusions',
+    intro:
+      'Songs matching anything on this list are never dealt. The list is kept on this device and applies on every server.',
+    search: 'Search artists, albums, songs, playlists',
+    artists: 'Artists',
+    albums: 'Albums',
+    songs: 'Songs',
+    playlists: 'Playlists',
+    exclude: 'Exclude',
+    excluded: '✓ Excluded',
+    remove: 'Remove from exclusions',
+    empty: 'Nothing excluded yet. Search above to add something.',
+    noResults: 'Nothing found.',
+    searchFailed: 'Search failed. Is the server reachable?',
+    playlistSongs: (n: number) => `${n} song${n === 1 ? '' : 's'}`,
   },
   winner: {
     winner: 'Winner',

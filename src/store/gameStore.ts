@@ -26,8 +26,15 @@ import {
   type Song,
 } from '../subsonic/client'
 import { cardMaker } from '../subsonic/cards'
+import { buildMatcher, exclusionId, type Exclusion } from '../subsonic/exclusions'
+import { useExclusionStore } from './exclusionStore'
 import { audioPlayer } from '../audio/player'
-import { demoteIfLanUnreachable, getEffectiveServer, recheckAddress } from './configStore'
+import {
+  demoteIfLanUnreachable,
+  getEffectiveServer,
+  recheckAddress,
+  type ServerConfig,
+} from './configStore'
 import { getT } from '../i18n'
 
 /** How the mystery song is presented each turn. */
@@ -49,6 +56,36 @@ const DEFAULT_PLAYBACK: PlaybackSettings = {
   clip: 'full',
   randomStart: false,
   lockOnEnd: false,
+}
+
+// The exclusion list as a predicate, rebuilt only when the list changes. It is
+// consulted for every card rather than once per game, so a song excluded
+// mid-game is caught even if a producer had already fetched it.
+let matcherFor: Exclusion[] | null = null
+let matcher: (song: Song) => boolean = () => false
+function isExcluded(song: Song): boolean {
+  const items = useExclusionStore.getState().items
+  if (items !== matcherFor) {
+    matcher = buildMatcher(items)
+    matcherFor = items
+  }
+  return matcher(song)
+}
+
+/**
+ * Bring excluded playlists from this server up to date, so songs added to one
+ * since it was excluded are caught too. Playlists from other servers keep
+ * their snapshot. Best effort: a failed fetch keeps the snapshot as well.
+ */
+async function refreshExcludedPlaylists(server: ServerConfig) {
+  const { items, refreshPlaylist } = useExclusionStore.getState()
+  await Promise.allSettled(
+    items.map(async (e) => {
+      if (e.kind !== 'playlist' || e.serverId !== server.id) return
+      const songs = await getPlaylistSongs(server, e.playlistId)
+      refreshPlaylist(exclusionId(e), songs.map((x) => ({ artist: x.artist, title: x.title })))
+    }),
+  )
 }
 
 // The transport is the authoritative state holder; kept outside zustand.
@@ -281,10 +318,13 @@ export const useGameStore = create<GameStore>((set, get) => {
       // lookup (many searches, slow on a cold cache) must NOT block dealing, so
       // it runs as a separate background producer that streams its cards in.
       let pool: Song[]
+      const playlistsRefreshed = refreshExcludedPlaylists(server)
       try {
         if (deck.playlistId) {
           // A playlist is already hand-curated: use it whole, just shuffled.
           pool = shuffle(await getPlaylistSongs(server, deck.playlistId), rng)
+          await playlistsRefreshed
+          pool = pool.filter((s) => !isExcluded(s))
           target = Math.min(target, pool.length)
         } else {
           pool = shuffle(
@@ -295,6 +335,8 @@ export const useGameStore = create<GameStore>((set, get) => {
             }),
             rng,
           )
+          await playlistsRefreshed
+          pool = pool.filter((s) => !isExcluded(s))
         }
       } catch (e) {
         // A transport failure surfaces as a bare "Failed to fetch" — localize it
@@ -320,7 +362,7 @@ export const useGameStore = create<GameStore>((set, get) => {
 
       const flushBatch = () => {
         if (!batch.length || producerToken !== myToken) return
-        const classified: ClassifiedSong[] = batch.map((s) => ({
+        const classified: ClassifiedSong[] = batch.filter((s) => !isExcluded(s)).map((s) => ({
           song: s,
           decade: Math.floor((s.year as number) / 10) * 10,
           known: true,
@@ -340,6 +382,7 @@ export const useGameStore = create<GameStore>((set, get) => {
       const emittedIds = new Set<string>()
       const emit = (card: Song) => {
         if (emittedIds.has(card.id)) return // random + canon producers can overlap
+        if (isExcluded(card)) return
         emittedIds.add(card.id)
         deckCount++
         if (!started) {
@@ -407,6 +450,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         }
         for (const song of curatedSongs) {
           if (producerToken !== myToken || deckCount >= target) break
+          if (isExcluded(song)) continue // skip its metadata lookups
           const card = await makeCard(song)
           if (card) emit(card)
         }
@@ -555,4 +599,12 @@ export const useGameStore = create<GameStore>((set, get) => {
       })
     },
   }
+})
+
+// Something excluded mid-game (e.g. from the reveal screen) must not be dealt
+// later in this game either: take its queued cards out of the deck.
+useExclusionStore.subscribe(() => {
+  const { game } = useGameStore.getState()
+  const ids = game.deck.slice(game.deckIndex).filter(isExcluded).map((s) => s.id)
+  if (ids.length) transport?.dispatch({ type: 'DROP_CARDS', ids })
 })

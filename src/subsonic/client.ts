@@ -111,7 +111,11 @@ interface SubsonicEnvelope {
     type?: string
     error?: { code: number; message: string }
     randomSongs?: { song?: RawSong[] }
-    searchResult3?: { song?: RawSong[] }
+    searchResult3?: {
+      song?: RawSong[]
+      artist?: Array<{ id: string | number; name?: string }>
+      album?: Array<{ id: string | number; name?: string; artist?: string }>
+    }
     song?: RawSong
     artists?: { index?: Array<{ artist?: Array<{ id: string | number; name?: string }> }> }
     genres?: { genre?: RawGenre[] }
@@ -391,6 +395,38 @@ export async function search3(
     musicFolderId: opts.musicFolderId,
   })
   return (body.searchResult3?.song ?? []).map(toSong)
+}
+
+export interface LibraryArtist {
+  id: string
+  name: string
+}
+
+export interface LibraryAlbum {
+  id: string
+  name: string
+  artist: string
+}
+
+/** Search artists, albums and songs at once — for picking what to exclude. */
+export async function searchLibrary(
+  config: ServerConfig,
+  query: string,
+): Promise<{ artists: LibraryArtist[]; albums: LibraryAlbum[]; songs: Song[] }> {
+  const body = await apiFetch(config, 'search3.view', {
+    query,
+    artistCount: 5,
+    albumCount: 5,
+    songCount: 10,
+  })
+  const r = body.searchResult3
+  return {
+    artists: (r?.artist ?? []).map((a) => ({ id: String(a.id), name: a.name ?? '' })).filter((a) => a.name),
+    albums: (r?.album ?? [])
+      .map((a) => ({ id: String(a.id), name: a.name ?? '', artist: a.artist ?? '' }))
+      .filter((a) => a.name),
+    songs: (r?.song ?? []).map(toSong),
+  }
 }
 
 export async function getGenres(config: ServerConfig): Promise<Genre[]> {

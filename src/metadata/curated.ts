@@ -28,6 +28,9 @@ function norm(s: string): string {
     .trim()
 }
 
+/** The same normalization, for matching any name across servers (see exclusions). */
+export { norm as normalizeName }
+
 /** Normalized artist token — used to test whether a library artist is in the canon. */
 export function artistKey(artist: string): string {
   return norm(artist)

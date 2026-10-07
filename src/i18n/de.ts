@@ -91,6 +91,8 @@ export const de: Dict = {
     randomStartHint: 'Irgendwo im Song beginnen statt bei 0:00.',
     lockOnEnd: 'Sperren bei Wiedergabe-Ende',
     lockOnEndHint: '5-Sek.-Countdown zum Platzieren; endet die Wiedergabe, wird die Platzierung gesperrt (keine Platzierung = Pech gehabt).',
+    exclusions: 'Ausschlüsse',
+    exclusionsCount: (n: number) => (n ? `${n} ausgeschlossen` : 'keine'),
     start: 'Spiel starten',
   },
   game: {
@@ -136,6 +138,9 @@ export const de: Dict = {
     removedFromPlaylist: 'entfernt',
     addFailed: 'nicht erlaubt',
     noPlaylists: 'Noch keine Playlists auf dem Server.',
+    exclude: 'Nie wieder ziehen',
+    excludeSong: 'Diesen Song',
+    excludeArtist: (name: string) => `Alles von ${name}`,
     namedOn: '✓ Titel + Interpret genannt (+1 Token)',
     namedOff: (name: string) => `🎤 Hat ${name} Titel + Interpret genannt?`,
     nextPlayer: 'Nächster Spieler →',
@@ -158,6 +163,23 @@ export const de: Dict = {
           return `${name} lag mit dem Zweifel daneben — Token verloren`
       }
     },
+  },
+  exclusions: {
+    title: 'Ausschlüsse',
+    intro:
+      'Songs, auf die etwas in dieser Liste zutrifft, werden nie gezogen. Die Liste liegt auf diesem Gerät und gilt für jeden Server.',
+    search: 'Interpreten, Alben, Songs, Playlists suchen',
+    artists: 'Interpreten',
+    albums: 'Alben',
+    songs: 'Songs',
+    playlists: 'Playlists',
+    exclude: 'Ausschließen',
+    excluded: '✓ Ausgeschlossen',
+    remove: 'Aus den Ausschlüssen entfernen',
+    empty: 'Noch nichts ausgeschlossen. Oben suchen, um etwas hinzuzufügen.',
+    noResults: 'Nichts gefunden.',
+    searchFailed: 'Suche fehlgeschlagen. Ist der Server erreichbar?',
+    playlistSongs: (n: number) => `${n} Song${n === 1 ? '' : 's'}`,
   },
   winner: {
     winner: 'Sieger',
