@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Layout } from '../Layout'
 import { Button } from '../../ui/Button'
 import { useGameStore } from '../../store/gameStore'
-import { leaderboard, winner } from '../../game/selectors'
+import { deckRanOut, leaderboard, winner } from '../../game/selectors'
 import { useT } from '../../i18n'
 
 export function Winner() {
@@ -11,6 +11,7 @@ export function Winner() {
   const game = useGameStore((s) => s.game)
   const restart = useGameStore((s) => s.restart)
   const quit = useGameStore((s) => s.quit)
+  const metadataMode = useGameStore((s) => s.metadataMode)
   const t = useT()
   const champ = winner(game)
 
@@ -42,6 +43,17 @@ export function Winner() {
             </li>
           ))}
         </ol>
+
+        {deckRanOut(game) && (
+          <div className="w-full max-w-xs rounded-xl bg-slate-800/60 px-4 py-3 text-left text-sm">
+            <p className="font-semibold text-slate-200">{t.winner.deckRanOut}</p>
+            <p className="mt-1 text-slate-400">
+              {metadataMode === 'full'
+                ? t.winner.deckRanOutRanked(t.setup.metaNoRanking, t.setup.metaOffline)
+                : t.winner.deckRanOutSmall}
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-3 py-4">

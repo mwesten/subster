@@ -14,6 +14,7 @@ import {
   tierIndex,
   type ClassifiedSong,
   type DeckOptions,
+  type MetadataMode,
 } from '../subsonic/deck'
 import { searchTrack } from '../metadata'
 import { isCurated } from '../metadata/curated'
@@ -88,6 +89,8 @@ interface GameStore {
   placeCountdown: number | null
   /** True once a clip has finished — playback is spent for this turn. */
   clipEnded: boolean
+  /** How the current deck was built — decides what to suggest when it runs short. */
+  metadataMode: MetadataMode
   /** Brief "swipe back again to quit" hint (Android back gesture). */
   quitHint: boolean
   /** Deck ran dry but more songs are still being resolved — next turn pending. */
@@ -249,6 +252,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     countdown: null,
     placeCountdown: null,
     clipEnded: false,
+    metadataMode: 'full',
     quitHint: false,
     waitingForCards: false,
 
@@ -265,6 +269,7 @@ export const useGameStore = create<GameStore>((set, get) => {
         return
       }
       lastDeck = deck
+      set({ metadataMode: deck.metadataMode ?? 'full' })
       lastNames = playerNames
       lastSettings = settings
       playback = pb
@@ -443,7 +448,13 @@ export const useGameStore = create<GameStore>((set, get) => {
       if (producerToken !== myToken) return
       if (initial.length < minToStart) {
         producerToken++
-        set({ status: 'error', error: getT().game.notEnoughSongs(initial.length) })
+        const t = getT()
+        set({
+          status: 'error',
+          error: ranked
+            ? t.game.notEnoughRanked(initial.length, t.setup.metaNoRanking, t.setup.metaOffline)
+            : t.game.notEnoughSongs(initial.length),
+        })
         return
       }
 
