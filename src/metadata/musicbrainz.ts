@@ -22,7 +22,9 @@ export interface RecordingYear {
 const yearByMbid = new JsonCache<RecordingYear>('mb-year-v4')
 const yearByRgSearch = new JsonCache<number | null>('mb-rg-year')
 const earliestByText = new JsonCache<number | null>('mb-earliest-v2')
-const mbidByIsrc = new JsonCache<string | null>('mb-isrc')
+// v2: the earliest of an ISRC's recordings, no longer simply the first listed.
+const mbidByIsrc = new JsonCache<string | null>('mb-isrc-v2')
+JsonCache.dropNamespace('mb-isrc')
 const mbidByText = new JsonCache<string | null>('mb-text')
 const mbidByAlbumTrack = new JsonCache<string | null>('mb-album-track')
 
@@ -73,7 +75,7 @@ export function looksLive(text: string | undefined): boolean {
   return /\b(live|unplugged|concert|konzert|koncert|en vivo|en directo|dal vivo)\b/i.test(text ?? '')
 }
 interface IsrcLookup {
-  recordings?: Array<{ id: string }>
+  recordings?: Array<{ id: string; 'first-release-date'?: string }>
 }
 interface RecordingSearch {
   recordings?: Array<{
@@ -312,7 +314,12 @@ export async function earliestRecordingYear(
   return year
 }
 
-/** Resolve a recording MBID from an ISRC (exact). */
+/**
+ * Resolve a recording MBID from an ISRC (exact). An ISRC names one recording,
+ * but MusicBrainz often lists several for it: duplicates entered for a reissue
+ * or a regional release of the same audio. Take the one released first — the
+ * first listed can be the reissue, which dates a 2010 song to 2025.
+ */
 export async function recordingMbidFromIsrc(isrc: string): Promise<string | undefined> {
   const cached = mbidByIsrc.get(isrc)
   if (cached !== undefined) return cached ?? undefined
@@ -322,7 +329,9 @@ export async function recordingMbidFromIsrc(isrc: string): Promise<string | unde
     const res = await throttled(`${MB}/isrc/${encodeURIComponent(isrc)}?fmt=json`)
     if (!res.ok) return undefined // rate-limited/server error: don't poison the cache
     const data = (await res.json()) as IsrcLookup
-    mbid = data.recordings?.[0]?.id
+    // Undated ones last; a stable sort keeps MusicBrainz's order among equals.
+    const dated = (r: { 'first-release-date'?: string }) => r['first-release-date'] || '9999'
+    mbid = [...(data.recordings ?? [])].sort((a, b) => dated(a).localeCompare(dated(b)))[0]?.id
   } catch {
     return undefined
   }

@@ -23,6 +23,7 @@ import {
   ApiError,
   diagnoseStreamFailure,
   getPlaylistSongs,
+  mainArtist,
   streamUrl,
   type Song,
 } from '../subsonic/client'
@@ -426,8 +427,8 @@ export const useGameStore = create<GameStore>((set, get) => {
           }
           // A canon song is a top hit even if Deezer under-rates it (older/
           // regional) or has no match — skip the Deezer lookup entirely.
-          const curated = boostCurated && isCurated(song.artist, song.title)
-          const hit = curated ? null : await searchTrack(song.artist, song.title)
+          const curated = boostCurated && isCurated(mainArtist(song), song.title)
+          const hit = curated ? null : await searchTrack(mainArtist(song), song.title)
           const rank = curated ? CURATED_RANK : hit?.rank ?? 0
           if (rank < floor) continue
           const ti = tierIndex(rank, tiers)
