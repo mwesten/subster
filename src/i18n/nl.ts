@@ -26,7 +26,7 @@ export const nl: Dict = {
     save: 'Testen & opslaan',
     disconnect: 'Verbreken',
     insecureUrl:
-      'Onversleutelde verbinding (http) — jouw login gegevens en muziek zijn zichtbaar voor iedereen op hetzelfde netwerk. Gebruik https als je kunt.',
+      'Onversleutelde verbinding (http) — jouw inloggegevens en muziek zijn zichtbaar voor iedereen op hetzelfde netwerk. Gebruik https als je kunt.',
     networkError:
       'Kon de server niet bereiken. In een browser is dit doorgaans CORS: de pagina (dit adresveld) en je muziekserver hebben verschillende adressen, waardoor de browser de reacties blokkeert, tenzij de server dat toestaat — zie de README.',
     networkErrorNative: 'Kon de server niet bereiken — controleer het adres en je netwerk.',
