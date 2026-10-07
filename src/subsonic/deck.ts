@@ -236,25 +236,14 @@ export async function fetchCandidates(
 
 /**
  * Take `size` items from several libraries' lists, each library's share ∝ √ of
- * its song count, but never below half of an equal share. Equal shares let a
- * 70-song single-artist library fill a third of a deck next to one of 10,000
- * songs; the square root alone left a 97-song kids library next to 24,000
- * songs with 6% of the pool — after the popularity filter, games without a
- * single song from a library chosen on purpose. The floor keeps it in play
- * (25% with two libraries); flooding by one artist is the artist cap's job.
- * A list that runs short leaves the rest of its share to the others.
+ * its song count. Equal shares let a 70-song single-artist library fill a
+ * third of a deck next to one of 10,000 songs; plain proportional shares
+ * would leave it a card or two. The square root sits between: that library
+ * gets about 6%. A list that runs short leaves the rest of its share to the
+ * others.
  */
 export function shareBySize<T>(lists: T[][], counts: number[], size: number): T[] {
-  const roots = counts.map((n) => Math.sqrt(Math.max(0, n)))
-  const rootSum = roots.reduce((a, b) => a + b, 0)
-  const floor = 1 / (2 * lists.length)
-  // Lift the small ones to the floor; the rest share what is left by √ size.
-  const lifted = roots.map((r) => (rootSum > 0 && r / rootSum < floor ? floor : null))
-  const liftedTotal = lifted.reduce<number>((a, b) => a + (b ?? 0), 0)
-  const restRoots = roots.reduce((a, r, i) => a + (lifted[i] == null ? r : 0), 0)
-  const weights = roots.map((r, i) =>
-    lifted[i] ?? (restRoots > 0 ? ((1 - liftedTotal) * r) / restRoots : 0),
-  )
+  const weights = counts.map((n) => Math.sqrt(Math.max(0, n)))
   const quotas = lists.map(() => 0)
   let left = Math.min(size, lists.reduce((n, l) => n + l.length, 0))
   // Hand out the remaining places among the lists with room, by weight, until
