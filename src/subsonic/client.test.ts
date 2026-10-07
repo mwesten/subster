@@ -6,6 +6,7 @@ import {
   getPlaylists,
   getPlaylistSongs,
   getRandomSongs,
+  mainArtist,
   ping,
   removeSongFromPlaylist,
   connect,
@@ -444,5 +445,31 @@ describe('diagnoseStreamFailure', () => {
     vi.stubGlobal('fetch', fetchMock)
     expect(await diagnoseStreamFailure(config, 'x')).toBe('undecodable')
     expect(String(fetchMock.mock.calls[0]![0])).toContain('getSong.view')
+  })
+
+  it('keeps the credited artists, and looks a song up by the first', async () => {
+    const body = {
+      'subsonic-response': {
+        status: 'ok',
+        randomSongs: {
+          song: [
+            {
+              id: '1',
+              artist: 'Bruno Mars • Lupe Fiasco',
+              artists: [{ id: 'a', name: 'Bruno Mars' }, { id: 'b', name: 'Lupe Fiasco' }],
+            },
+            { id: '2', artist: 'Queen', artists: [{ id: 'q', name: 'Queen' }] },
+            { id: '3', artist: 'Billy Joel' }, // no OpenSubsonic artists
+          ],
+        },
+      },
+    }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(body)))
+
+    const [joined, single, plain] = await getRandomSongs(config)
+    expect(joined!.artist).toBe('Bruno Mars • Lupe Fiasco') // the display keeps the full credit
+    expect(mainArtist(joined!)).toBe('Bruno Mars')
+    expect(mainArtist(single!)).toBe('Queen')
+    expect(mainArtist(plain!)).toBe('Billy Joel')
   })
 })

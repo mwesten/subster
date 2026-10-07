@@ -14,6 +14,12 @@ export interface Song {
   genre?: string
   duration?: number
   coverArt?: string
+  /**
+   * Every credited artist, when the server lists them (OpenSubsonic). With a
+   * multi-valued artist tag, `artist` is these joined for display, e.g.
+   * Navidrome's "Bruno Mars • Lupe Fiasco" — see mainArtist.
+   */
+  artists?: string[]
   /** OpenSubsonic recording MusicBrainz ID, when the server exposes it. */
   musicBrainzId?: string
   /** OpenSubsonic ISRC(s) — the server may return several. */
@@ -120,6 +126,7 @@ interface SubsonicEnvelope {
     artists?: { index?: Array<{ artist?: Array<{ id: string | number; name?: string }> }> }
     genres?: { genre?: RawGenre[] }
     musicFolders?: { musicFolder?: Array<{ id: string | number; name?: string }> }
+    albumList2?: { album?: Array<{ songCount?: number }> }
     playlists?: { playlist?: RawPlaylist[] }
     playlist?: RawPlaylist & { entry?: RawSong[] }
   }
@@ -141,6 +148,7 @@ interface RawSong {
   duration?: number
   coverArt?: string
   musicBrainzId?: string
+  artists?: Array<{ id?: string; name?: string }>
   // OpenSubsonic may return isrc as a string or an array of strings.
   isrc?: string | string[]
   // ISO timestamp when starred, absent otherwise.
@@ -276,6 +284,16 @@ export const TOKEN_AUTH_UNSUPPORTED = 41
 /** Subsonic error 70 — the requested item doesn't exist (e.g. a stale song id). */
 export const NOT_FOUND = 70
 
+/**
+ * The artist to look a song up by, and to tell artists apart in a deck. With
+ * several credited, the first: a joined credit like "Bruno Mars • Lupe Fiasco"
+ * matches nothing on MusicBrainz or in the famous-songs list, while "Bruno
+ * Mars" does. The display keeps the full credit.
+ */
+export function mainArtist(song: Pick<Song, 'artist' | 'artists'>): string {
+  return song.artists && song.artists.length > 1 ? (song.artists[0] as string) : song.artist
+}
+
 function toSong(raw: RawSong): Song {
   return {
     id: raw.id,
@@ -286,6 +304,7 @@ function toSong(raw: RawSong): Song {
     genre: raw.genre,
     duration: raw.duration,
     coverArt: raw.coverArt,
+    artists: raw.artists?.map((a) => a.name ?? '').filter(Boolean),
     musicBrainzId: raw.musicBrainzId,
     isrc: raw.isrc ? (Array.isArray(raw.isrc) ? raw.isrc : [raw.isrc]) : undefined,
     starred: raw.starred != null || undefined,
@@ -343,6 +362,34 @@ export async function getRandomSongs(
     musicFolderId: options.musicFolderId,
   })
   return (body.randomSongs?.song ?? []).map(toSong)
+}
+
+const ALBUM_PAGE = 500
+
+/**
+ * How many songs a library holds. Subsonic has no direct count, so it adds up
+ * the library's albums, a page of 500 at a time. A huge library stops at
+ * `maxPages` (5,000 albums by default) and reports what was counted: enough
+ * to know it is huge, which is all its callers need.
+ */
+export async function librarySongCount(
+  config: ServerConfig,
+  musicFolderId: string,
+  maxPages = 10,
+): Promise<number> {
+  let total = 0
+  for (let page = 0; page < maxPages; page++) {
+    const body = await apiFetch(config, 'getAlbumList2.view', {
+      type: 'alphabeticalByName',
+      size: ALBUM_PAGE,
+      offset: page * ALBUM_PAGE,
+      musicFolderId,
+    })
+    const albums = body.albumList2?.album ?? []
+    for (const album of albums) total += album.songCount ?? 0
+    if (albums.length < ALBUM_PAGE) break
+  }
+  return total
 }
 
 /**

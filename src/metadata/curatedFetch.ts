@@ -1,5 +1,5 @@
 import type { ServerConfig } from '../store/configStore'
-import { getArtists, search3, type Song } from '../subsonic/client'
+import { getArtists, mainArtist, search3, type Song } from '../subsonic/client'
 import { JsonCache } from '../lib/cache'
 import { artistKey, curatedEntries, curatedKey } from './curated'
 import { shuffle } from '../subsonic/deck'
@@ -80,7 +80,7 @@ export async function findCuratedSongs(
       } catch {
         return null // transient failure: don't cache a miss
       }
-      const song = hits.find((s) => curatedKey(s.artist, s.title) === key) ?? null
+      const song = hits.find((s) => curatedKey(mainArtist(s), s.title) === key) ?? null
       inLibraryCache.set(cacheKey(scope, key), song !== null)
       if (song) return song
     }

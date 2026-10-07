@@ -1,4 +1,4 @@
-import type { Song } from '../subsonic/client'
+import { mainArtist, type Song } from '../subsonic/client'
 import { trackIsrc } from './deezer'
 import {
   earliestRecordingYear,
@@ -31,6 +31,7 @@ export async function resolveOriginalYear(
   song: Song,
   deezerTrackId?: number,
 ): Promise<RecordingYear> {
+  const artist = mainArtist(song)
   let live = false
   const consider = async (mbid: string | undefined): Promise<number | undefined> => {
     if (!mbid) return undefined
@@ -53,9 +54,9 @@ export async function resolveOriginalYear(
     }
   }
   if (!done(year) && !song.musicBrainzId && song.album) {
-    year = await consider(await recordingMbidFromAlbum(song.artist, song.title, song.album))
+    year = await consider(await recordingMbidFromAlbum(artist, song.title, song.album))
     if (!done(year)) {
-      year = await consider(await recordingMbidFromText(song.artist, song.title, song.album))
+      year = await consider(await recordingMbidFromText(artist, song.title, song.album))
     }
   }
   if (!done(year) && !song.musicBrainzId && deezerTrackId) {
@@ -65,7 +66,7 @@ export async function resolveOriginalYear(
     }
   }
   if (!done(year) && !song.musicBrainzId) {
-    year = await consider(await recordingMbidFromText(song.artist, song.title))
+    year = await consider(await recordingMbidFromText(artist, song.title))
   }
 
   if (live) return { live: true }
@@ -80,13 +81,13 @@ export async function resolveOriginalYear(
   // 1936 chanson MusicBrainz dates 1992). Gating on that keeps the common,
   // well-tagged song at zero extra fetches. min() only moves the year earlier.
   const [searchYear, wdYear] = await Promise.all([
-    earliestRecordingYear(song.artist, song.title),
-    year === undefined ? yearFromWikidata(song.artist, song.title) : Promise.resolve(undefined),
+    earliestRecordingYear(artist, song.title),
+    year === undefined ? yearFromWikidata(artist, song.title) : Promise.resolve(undefined),
   ])
   const candidates = [year, searchYear, wdYear].filter((y): y is number => y !== undefined)
   if (candidates.length) return { year: Math.min(...candidates), live: false }
 
   // 6. Still nothing → original release-group search (singles named after the song).
-  const rgYear = await yearFromReleaseGroupSearch(song.artist, song.title)
+  const rgYear = await yearFromReleaseGroupSearch(artist, song.title)
   return { year: rgYear, live: false }
 }

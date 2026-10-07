@@ -10,6 +10,10 @@ describe('artistParts', () => {
     expect(artistParts('Calvin Harris feat. Ellie Goulding')).toContain('ellie goulding')
   })
 
+  it("splits Navidrome's joined multi-valued artist tag", () => {
+    expect(artistParts('Bruno Mars • Lupe Fiasco')).toContain('lupe fiasco')
+  })
+
   it('leaves "and" inside band names alone', () => {
     expect(artistParts('Simon and Garfunkel')).toEqual(['simon and garfunkel'])
   })
@@ -25,6 +29,12 @@ describe('buildMatcher', () => {
     expect(excluded(song('Queen', 'Bohemian Rhapsody'))).toBe(true)
     expect(excluded(song('Queen & David Bowie', 'Under Pressure'))).toBe(true)
     expect(excluded(song('Queen Latifah', 'U.N.I.T.Y.'))).toBe(false)
+  })
+
+  it("excludes by any artist the server lists, and a song by its main artist's name", () => {
+    const joined: Song = { ...song('Bruno Mars • Lupe Fiasco', 'Just the Way You Are'), artists: ['Bruno Mars', 'Lupe Fiasco'] }
+    expect(buildMatcher([{ kind: 'artist', name: 'Lupe Fiasco' }])(joined)).toBe(true)
+    expect(buildMatcher([{ kind: 'song', artist: 'Bruno Mars', title: 'Just the Way You Are' }])(joined)).toBe(true)
   })
 
   it('matches by name, tolerating the differences between servers', () => {

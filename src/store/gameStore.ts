@@ -3,6 +3,8 @@ import { initialState } from '../game/reducer'
 import type { GameSettings, GameState, Player } from '../game/types'
 import { createLocalTransport, type Transport } from '../net/local'
 import {
+  artistLimit,
+  artistOf,
   buildDeckOrder,
   computeQuotas,
   CURATED_RANK,
@@ -23,6 +25,7 @@ import {
   ApiError,
   diagnoseStreamFailure,
   getPlaylistSongs,
+  mainArtist,
   streamUrl,
   type Song,
 } from '../subsonic/client'
@@ -371,9 +374,13 @@ export const useGameStore = create<GameStore>((set, get) => {
       let deckCount = 0
       const initial: Song[] = []
       let batch: Song[] = []
-      // Artist of the last card dealt so far — so batches don't repeat an
-      // artist across the seam (no two same-artist songs back to back).
-      let lastArtist: string | undefined
+      // Artists of the last cards dealt, one per player — so batches keep an
+      // artist's cards rotating through the players across the seam too.
+      const artistGap = playerNames.length
+      let recentArtists: string[] = []
+      const remember = (dealt: Song[]) => {
+        recentArtists = [...recentArtists, ...dealt.map(artistOf)].slice(-artistGap)
+      }
       let signalStart: () => void = () => {}
       const startSignal = new Promise<void>((r) => (signalStart = r))
 
@@ -384,9 +391,9 @@ export const useGameStore = create<GameStore>((set, get) => {
           decade: Math.floor((s.year as number) / 10) * 10,
           known: true,
         }))
-        const ordered = spreadArtists(buildDeckOrder(classified, 1, rng), lastArtist)
+        const ordered = spreadArtists(buildDeckOrder(classified, 1, rng), recentArtists, artistGap)
         batch = []
-        if (ordered.length) lastArtist = ordered[ordered.length - 1]?.artist
+        remember(ordered)
         transport?.dispatch({ type: 'ADD_CARDS', songs: ordered })
         // A player was waiting on an empty deck — resume their next turn now.
         if (pendingNextTurn) {
@@ -396,10 +403,22 @@ export const useGameStore = create<GameStore>((set, get) => {
         }
       }
 
+      // At most about a tenth of the deck by one artist. A library that is
+      // mostly one artist (a discography, a soundtrack) would otherwise fill
+      // the deck with it. Cards over the cap are held back, not dropped: once
+      // the producers are done, they top up a deck that would run short, so
+      // a selection that really is one artist still makes a game.
+      const perArtist = artistLimit(Math.max(2, Math.round(target / 10)))
+      const heldBack: Song[] = []
+
       const emittedIds = new Set<string>()
-      const emit = (card: Song) => {
+      const emit = (card: Song, uncapped = false) => {
         if (emittedIds.has(card.id)) return // random + canon producers can overlap
         if (isExcluded(card)) return
+        if (!perArtist.admit(card, uncapped)) {
+          heldBack.push(card)
+          return
+        }
         emittedIds.add(card.id)
         deckCount++
         if (!started) {
@@ -426,8 +445,8 @@ export const useGameStore = create<GameStore>((set, get) => {
           }
           // A canon song is a top hit even if Deezer under-rates it (older/
           // regional) or has no match — skip the Deezer lookup entirely.
-          const curated = boostCurated && isCurated(song.artist, song.title)
-          const hit = curated ? null : await searchTrack(song.artist, song.title)
+          const curated = boostCurated && isCurated(mainArtist(song), song.title)
+          const hit = curated ? null : await searchTrack(mainArtist(song), song.title)
           const rank = curated ? CURATED_RANK : hit?.rank ?? 0
           if (rank < floor) continue
           const ti = tierIndex(rank, tiers)
@@ -476,6 +495,11 @@ export const useGameStore = create<GameStore>((set, get) => {
 
       Promise.allSettled([produce(), produceCurated()]).finally(() => {
         if (producerToken === myToken) {
+          for (const card of heldBack) {
+            if (deckCount >= target) break
+            emit(card, true)
+          }
+          flushBatch()
           producing = false
           // Producers are done for good; a still-pending next turn now really
           // exhausts the deck (the reducer ends the game properly).
@@ -510,8 +534,8 @@ export const useGameStore = create<GameStore>((set, get) => {
       }))
 
       started = true
-      const deckStart = spreadArtists([...initial])
-      lastArtist = deckStart[deckStart.length - 1]?.artist
+      const deckStart = spreadArtists([...initial], [], artistGap)
+      remember(deckStart)
 
       transport?.destroy()
       transport = createLocalTransport(initialState())
