@@ -67,6 +67,8 @@ export const de: Dict = {
     metaOffline: 'Offline',
     metaOfflineHint: 'Nur dein Server wird kontaktiert — die Datei-Jahre werden direkt verwendet.',
     cardsToWin: 'Karten zum Sieg',
+    cardsFewer: 'Weniger Karten',
+    cardsMore: 'Mehr Karten',
     difficulty: 'Schwierigkeit',
     diffHits: 'Hits',
     diffHitsHint: 'Nur sehr bekannt',
