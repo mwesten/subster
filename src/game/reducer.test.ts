@@ -403,6 +403,16 @@ describe('ADD_CARDS', () => {
   })
 })
 
+describe('DROP_CARDS', () => {
+  it('removes only cards still to be drawn', () => {
+    const deck = [song('a', 1990), song('b', 1980), song('c', 1995), song('d', 2000), song('e', 2010)]
+    let state = start(deck) // a, b dealt; c is the mystery; d, e to come
+    state = reducer(state, { type: 'DROP_CARDS', ids: ['a', 'c', 'd'] })
+    expect(state.deck.map((s) => s.id)).toEqual(['a', 'b', 'c', 'e'])
+    expect(state.turn.song?.id).toBe('c')
+  })
+})
+
 describe('START yearless filtering', () => {
   it('drops yearless deck entries before dealing and drawing', () => {
     const noYear: Song = { id: 'ny', title: 'Tny', artist: 'Any' }

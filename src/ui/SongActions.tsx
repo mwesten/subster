@@ -9,6 +9,8 @@ import {
   type Song,
 } from '../subsonic/client'
 import { getEffectiveServer } from '../store/configStore'
+import { useExclusionStore, useIsExcluded } from '../store/exclusionStore'
+import type { Exclusion } from '../subsonic/exclusions'
 import { useT } from '../i18n'
 
 // Per-playlist row state: 'added'/'duplicate' mean the song is in the playlist
@@ -18,13 +20,20 @@ type AddState = 'busy' | 'added' | 'duplicate' | 'removed' | 'failed'
 
 /**
  * Icon overlay for the revealed song card: star ("like") the song and add it
- * to a playlist — for that "what a pearl, I want to keep this" moment.
+ * to a playlist — for that "what a pearl, I want to keep this" moment — or
+ * exclude the song or its artist from ever being dealt again.
  * Rendered only once the song is revealed, so it never spoils a blind guess.
  */
 export function SongActions({ song }: { song: Song }) {
   const t = useT()
   const [liked, setLiked] = useState(!!song.starred)
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [excludeOpen, setExcludeOpen] = useState(false)
+  const toggleExclusion = useExclusionStore((s) => s.toggle)
+  const songExclusion: Exclusion = { kind: 'song', title: song.title, artist: song.artist }
+  const artistExclusion: Exclusion = { kind: 'artist', name: song.artist }
+  const songExcluded = useIsExcluded(songExclusion)
+  const artistExcluded = useIsExcluded(artistExclusion)
   const [playlists, setPlaylists] = useState<Playlist[] | null>(null)
   const [results, setResults] = useState<Record<string, AddState>>({})
 
@@ -34,6 +43,7 @@ export function SongActions({ song }: { song: Song }) {
   useEffect(() => {
     setLiked(!!song.starred)
     setPickerOpen(false)
+    setExcludeOpen(false)
     setResults({})
   }, [song.id])
 
@@ -51,6 +61,7 @@ export function SongActions({ song }: { song: Song }) {
   }
 
   async function togglePicker() {
+    setExcludeOpen(false)
     setPickerOpen((v) => !v)
     if (playlists) return
     const server = getEffectiveServer()
@@ -110,7 +121,39 @@ export function SongActions({ song }: { song: Song }) {
         >
           <PlaylistAddIcon />
         </button>
+        <button
+          onClick={() => {
+            setPickerOpen(false)
+            setExcludeOpen((v) => !v)
+          }}
+          aria-expanded={excludeOpen}
+          aria-label={t.game.exclude}
+          className={`${iconBtn} ${songExcluded || artistExcluded ? 'text-red-400' : excludeOpen ? 'text-brand-300' : 'text-white'}`}
+        >
+          <BanIcon />
+        </button>
       </div>
+      {excludeOpen && (
+        <div className="absolute right-0 top-full z-20 mt-1.5 w-56 rounded-xl bg-slate-900/95 p-1.5 text-left shadow-xl ring-1 ring-slate-600">
+          <span className="block px-2 pb-1 pt-0.5 text-xs text-slate-400">{t.game.exclude}</span>
+          {(
+            [
+              [songExclusion, songExcluded, t.game.excludeSong],
+              [artistExclusion, artistExcluded, t.game.excludeArtist(song.artist)],
+            ] as const
+          ).map(([e, on, label]) => (
+            <button
+              key={e.kind}
+              onClick={() => toggleExclusion(e)}
+              aria-pressed={on}
+              className="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-slate-200 active:bg-slate-700/60"
+            >
+              <span>{label}</span>
+              {on && <span className="shrink-0 text-red-400">✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
       {pickerOpen && (
         <div className="absolute right-0 top-full z-20 mt-1.5 max-h-64 w-52 overflow-y-auto rounded-xl bg-slate-900/95 p-1.5 text-left shadow-xl ring-1 ring-slate-600">
           {playlists === null ? (
@@ -177,6 +220,24 @@ function PlaylistAddIcon() {
     >
       <path d="M4 6h14M4 11h14M4 16h7" />
       <path d="M17.5 13.5v6M14.5 16.5h6" />
+    </svg>
+  )
+}
+
+/** A circle with a slash — "never again". */
+function BanIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="M5.6 5.6l12.8 12.8" />
     </svg>
   )
 }

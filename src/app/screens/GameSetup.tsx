@@ -14,6 +14,7 @@ import {
   type Playlist,
 } from '../../subsonic/client'
 import type { MetadataMode } from '../../subsonic/deck'
+import { useExclusionStore } from '../../store/exclusionStore'
 import { MAX_WIN_TARGET, MIN_WIN_TARGET, parseWinTarget } from '../../game/rules'
 import { useT } from '../../i18n'
 
@@ -24,6 +25,7 @@ export function GameSetup() {
   const savePrefs = useSetupStore((s) => s.savePrefs)
   const activeServerId = useActiveServer()?.id
   const t = useT()
+  const exclusionCount = useExclusionStore((s) => s.items.length)
 
   // Seed from the last-used setup (persisted), falling back to localized
   // defaults. The deck source is remembered per server, since a library,
@@ -121,16 +123,6 @@ export function GameSetup() {
     }
   }
 
-  // Empty means every library, so all of them show as selected.
-  const folderSelected = (id: string) => !musicFolderIds?.length || musicFolderIds.includes(id)
-
-  function toggleFolder(id: string) {
-    const current = folders.map((f) => f.id).filter(folderSelected)
-    const next = current.includes(id) ? current.filter((x) => x !== id) : [...current, id]
-    if (!next.length) return // at least one library has to stay in
-    setMusicFolderIds(next.length === folders.length ? [] : next)
-  }
-
   function commitWinTarget(): number {
     const value = winDraft === null ? winTarget : parseWinTarget(winDraft, winTarget)
     setWinTarget(value)
@@ -143,9 +135,21 @@ export function GameSetup() {
     setWinTarget(Math.max(MIN_WIN_TARGET, Math.min(MAX_WIN_TARGET, value)))
   }
 
-  function start() {
+
+  // Empty means every library, so all of them show as selected.
+  const folderSelected = (id: string) => !musicFolderIds?.length || musicFolderIds.includes(id)
+
+  function toggleFolder(id: string) {
+    const current = folders.map((f) => f.id).filter(folderSelected)
+    const next = current.includes(id) ? current.filter((x) => x !== id) : [...current, id]
+    if (!next.length) return // at least one library has to stay in
+    setMusicFolderIds(next.length === folders.length ? [] : next)
+  }
+
+  // Remember these choices for next time — and before leaving for the
+  // exclusions screen, which remounts this one from the saved prefs.
+  function remember(): number {
     const target = commitWinTarget()
-    // Remember these choices for next time.
     savePrefs({
       names,
       winTarget: target,
@@ -161,6 +165,11 @@ export function GameSetup() {
         ? { ...saved.byServer, [activeServerId]: { genre, musicFolderIds, playlistId, metadataMode } }
         : saved.byServer,
     })
+    return target
+  }
+
+  function start() {
+    const target = remember()
     startGame({
       playerNames: names,
       settings: { winTarget: target, startTokens: 2, challengeGrace },
@@ -393,6 +402,18 @@ export function GameSetup() {
               </select>
             </label>
           )}
+
+          <button
+            type="button"
+            className="flex items-center justify-between gap-3 text-left"
+            onClick={() => {
+              remember()
+              navigate('/exclusions')
+            }}
+          >
+            <span>{t.setup.exclusions}</span>
+            <span className="text-slate-400">{t.setup.exclusionsCount(exclusionCount)} →</span>
+          </button>
 
           <div className="flex items-center justify-between gap-3">
             <button type="button" className="flex-1 text-left" onClick={() => setChallengeGrace((v) => !v)}>

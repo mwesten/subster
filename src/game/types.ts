@@ -100,3 +100,4 @@ export type GameAction =
   | { type: 'NEXT_TURN' }
   // Append more cards to a live deck (background deck-building).
   | { type: 'ADD_CARDS'; songs: Song[] }
+  | { type: 'DROP_CARDS'; ids: string[] } // take not-yet-drawn songs out of the deck (newly excluded)
