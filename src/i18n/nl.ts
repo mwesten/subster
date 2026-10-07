@@ -53,7 +53,7 @@ export const nl: Dict = {
       `✓ ${n} van de ${of} meegeleverde bekende nummers gevonden (${byArtists} van artiesten in je bibliotheek)`,
     canonFailed: 'Kon de bibliotheken niet lezen. Is de server bereikbaar?',
     findCanonHint:
-      'Elk deck mengt bekende nummers uit een meegeleverde lijst erdoorheen. Normaal vindt de app ze per spel een paar dozijn tegelijk in je bibliotheek, dus de eerste spellen herhalen zich vaker. Hier alles zoeken geeft meteen volledige afwisseling; doe het opnieuw nadat je muziek hebt toegevoegd. Alleen je eigen server wordt benaderd; via mobiele data kan het een paar minuten duren.',
+      'Elke kaartenstapel mengt bekende nummers uit een meegeleverde lijst erdoor. Normaal vindt de app zo per spel een paar dozijn tegelijk in je bibliotheek, dus de eerste spellen herhalen zich vaker. Hier alles zoeken geeft meteen volledige afwisseling; doe het opnieuw nadat je muziek hebt toegevoegd. Alleen je eigen server wordt benaderd; via mobiele data kan het een paar minuten duren.',
   },
   setup: {
     title: 'Nieuw spel',
