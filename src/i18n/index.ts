@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { en, type Dict } from './en'
 import { de } from './de'
+import { nl } from './nl'
 
 /**
  * Language registry. Adding a language = create `xx.ts` implementing `Dict`
@@ -12,6 +13,7 @@ export const LOCALES: Record<string, Dict> = { en, de }
 export const LANGUAGES: Array<{ code: string; label: string }> = [
   { code: 'en', label: 'English' },
   { code: 'de', label: 'Deutsch' },
+  { code: 'nl', label: 'Nederlands' },
 ]
 
 /** Pick a starting language from the device locale, falling back to English. */
