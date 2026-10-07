@@ -90,6 +90,36 @@ npm run typecheck
 npm run build      # production build → dist/
 ```
 
+## Translations
+
+The UI is available in English and German. Corrections and new languages are very welcome as pull
+requests, and no coding experience is needed beyond editing a text file.
+
+All UI text lives in [`src/i18n/`](src/i18n), one file per language. [`en.ts`](src/i18n/en.ts) is
+the source of truth: every other language must contain exactly the same keys, and the build fails
+if one is missing.
+
+**Fix an existing translation:** edit the string in that language's file (e.g.
+[`de.ts`](src/i18n/de.ts)) and open a PR.
+
+**Add a language** (Dutch as the example):
+
+1. Copy `src/i18n/de.ts` to `src/i18n/nl.ts`, rename the export to `nl`, and translate the values.
+   Leave the keys (left of the colon) as they are. Some values are small functions, such as
+   `` playerN: (n: number) => `Player ${n}` `` — translate only the text inside the backticks and
+   keep `${…}` placeholders intact.
+2. Register it in [`src/i18n/index.ts`](src/i18n/index.ts): add `nl` to `LOCALES` and
+   `{ code: 'nl', label: 'Nederlands' }` to `LANGUAGES`. The code is the two-letter language code;
+   the app picks it automatically on devices set to that language.
+3. Run `npm run typecheck` to confirm nothing is missing. If you can't run it, open the PR anyway
+   and we'll check it.
+4. Optional: the store listing lives in `fastlane/metadata/android/<locale>/`
+   (`title.txt`, `short_description.txt`, `full_description.txt`).
+
+**Not comfortable with a PR?** Open an issue naming the language. We can draft a machine
+translation as a PR for you to review: a native speaker reading over a draft is quicker than
+translating from scratch, and catches what a machine gets wrong.
+
 ## How it connects to Subsonic
 
 On first launch you enter your server URL, username, and password. Normally the password is **not
