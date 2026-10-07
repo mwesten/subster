@@ -12,7 +12,7 @@ import {
 } from '../../store/configStore'
 import { connect, ping } from '../../subsonic/client'
 import { JsonCache } from '../../lib/cache'
-import { scanCuratedSongs } from '../../metadata/curatedFetch'
+import { useCanonScanStore, useNeedsCanonScan } from '../../store/canonScanStore'
 import { useT } from '../../i18n'
 
 /** Re-check a server we already hold credentials for, shaped like connect(). */
@@ -38,9 +38,8 @@ export function ServerSetup() {
   const [status, setStatus] = useState<'idle' | 'testing' | 'error'>('idle')
   const [error, setError] = useState('')
   const [cachesCleared, setCachesCleared] = useState<number | null>(null)
-  const [scan, setScan] = useState<
-    { state: 'running'; done: number; total: number } | { state: 'done'; inLibrary: number; byArtists: number; bundled: number } | { state: 'failed' } | null
-  >(null)
+  // Set after adding a new server: recommend the famous-songs scan right away.
+  const [justAdded, setJustAdded] = useState(false)
   // Set after saving a server that needs the legacy scheme, so the warning is
   // seen at the moment it becomes true rather than only on a later visit.
   const [savedWithPassword, setSavedWithPassword] = useState(false)
@@ -58,17 +57,8 @@ export function ServerSetup() {
     setStatus('idle')
     setError('')
     setSavedWithPassword(false)
+    setJustAdded(false)
     if (target) selectServer(target.id)
-  }
-
-  // Uses the resolved address, so it runs over the LAN when that answers.
-  async function findCanon() {
-    if (!effective) return
-    setScan({ state: 'running', done: 0, total: 0 })
-    const found = await scanCuratedSongs(effective, (done, total) =>
-      setScan({ state: 'running', done, total }),
-    )
-    setScan(found == null ? { state: 'failed' } : { state: 'done', ...found })
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -98,15 +88,17 @@ export function ServerSetup() {
       : await reTest({ ...base, salt: editing!.salt, token: editing!.token, password: editing!.password })
 
     if (result.ok) {
+      const isNew = !editing
       saveServer(result.config)
       setEditingId(result.config.id)
       setStatus('idle')
       // Storing the password itself is a real change in what lives on the
       // device — say so here, where it happened, instead of navigating away.
-      if (result.config.password) {
-        setSavedWithPassword(true)
-        return
-      }
+      if (result.config.password) setSavedWithPassword(true)
+      // A new server is the moment to find its famous songs: stay here and
+      // recommend it instead of navigating away.
+      if (isNew) setJustAdded(true)
+      if (result.config.password || isNew) return
       // Back to the start screen rather than straight into a new game: saving
       // a server is often just switching between them, not the first step of
       // setting up a round.
@@ -240,12 +232,16 @@ export function ServerSetup() {
           </p>
         )}
 
+        {editing && editing.id === activeId && effective && (
+          <CanonScanCard serverId={editing.id} config={effective} recommended={justAdded} />
+        )}
+
         <p className="text-xs text-slate-500">{t.server.privacy}</p>
 
         <div className="mt-auto flex flex-col gap-3 py-4">
-          {savedWithPassword ? (
+          {savedWithPassword || justAdded ? (
             <Button type="button" onClick={() => navigate('/')}>
-              {t.server.continueAnyway}
+              {savedWithPassword ? t.server.continueAnyway : t.server.done}
             </Button>
           ) : (
             <Button type="submit" disabled={!canSubmit}>
@@ -264,30 +260,54 @@ export function ServerSetup() {
               {t.server.disconnect}
             </Button>
           )}
-          {editing && editing.id === activeId && (
-            <>
-              <Button
-                type="button"
-                variant="ghost"
-                disabled={scan?.state === 'running'}
-                onClick={() => void findCanon()}
-              >
-                {scan?.state === 'running' ? t.server.findingCanon(scan.done, scan.total) : t.server.findCanon}
-              </Button>
-              {scan?.state === 'done' && (
-                <span className="text-sm text-brand-300">{t.server.canonFound(scan.inLibrary, scan.bundled, scan.byArtists)}</span>
-              )}
-              {scan?.state === 'failed' && <span className="text-sm text-red-400">{t.server.canonFailed}</span>}
-              <span className="text-xs text-slate-500">{t.server.findCanonHint}</span>
-            </>
-          )}
-          <Button type="button" variant="ghost" onClick={() => setCachesCleared(JsonCache.clearAll())}>
+          <Button type="button" variant="ghost" onClick={() => {
+              setCachesCleared(JsonCache.clearAll())
+              // The scans' results describe the cache just cleared.
+              useCanonScanStore.getState().reset()
+            }}>
             {cachesCleared != null ? t.server.cachesCleared(cachesCleared) : t.server.clearCaches}
           </Button>
           <span className="text-xs text-slate-500">{t.server.clearCachesHint}</span>
         </div>
       </form>
     </Layout>
+  )
+}
+
+/**
+ * The famous-songs scan for the active server. Highlighted until the server
+ * has been scanned; the state lives in a store, so leaving the screen
+ * doesn't lose a running scan.
+ */
+function CanonScanCard(props: { serverId: string; config: ServerConfig; recommended: boolean }) {
+  const t = useT()
+  const scan = useCanonScanStore((s) => s.scans[props.serverId])
+  const needed = useNeedsCanonScan(props.serverId)
+  return (
+    <div
+      className={`flex flex-col gap-2 rounded-xl p-3 ring-1 ring-inset ${
+        needed ? 'bg-brand-500/10 ring-brand-500' : 'bg-slate-800/60 ring-slate-700'
+      }`}
+    >
+      <strong className="text-sm">
+        {props.recommended && needed ? t.server.canonRecommended : t.server.canonTitle}
+      </strong>
+      <span className="text-xs text-slate-400">{t.server.findCanonHint}</span>
+      <Button
+        type="button"
+        variant={needed ? 'primary' : 'ghost'}
+        disabled={scan?.state === 'running'}
+        onClick={() => void useCanonScanStore.getState().start(props.serverId, props.config)}
+      >
+        {scan?.state === 'running' ? t.server.findingCanon(scan.done, scan.total) : t.server.findCanon}
+      </Button>
+      {scan?.state === 'done' && (
+        <span className="text-sm text-brand-300">
+          {t.server.canonFound(scan.inLibrary, scan.bundled, scan.byArtists)}
+        </span>
+      )}
+      {scan?.state === 'failed' && <span className="text-sm text-red-400">{t.server.canonFailed}</span>}
+    </div>
   )
 }
 

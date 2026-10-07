@@ -15,6 +15,7 @@ export const en = {
     serverSettings: 'Server settings',
     footer: 'Musical time-travel · no backend · no cards',
     language: 'Language',
+    canonTip: 'Tip: find the famous songs on your server once, for more variety →',
   },
   server: {
     title: 'Connect your Subsonic server',
@@ -43,6 +44,7 @@ export const en = {
       'This server only accepts legacy authentication — the password sent as-is, instead of a token — so the password itself has to be stored on this device. An app password rather than your account password is a good idea here.',
     legacyAuthSaved: 'Saved — but note how this server signs you in:',
     continueAnyway: 'Got it, continue',
+    done: 'Done',
     saved: 'Saved servers',
     activeServer: 'in use',
     addServer: '+ Add another server',
@@ -50,6 +52,8 @@ export const en = {
     cachesCleared: (n: number) => `✓ ${n} cached entries cleared`,
     clearCachesHint:
       'Cached Deezer/MusicBrainz/Wikidata lookups never expire. Clear them when a wrong year or ranking has been fixed at the source — the next deck build re-fetches everything fresh. Server connection and settings are kept.',
+    canonTitle: 'Famous songs',
+    canonRecommended: 'Recommended: find the famous songs on this server',
     findCanon: 'Find famous songs on this server',
     findingCanon: (done: number, total: number) => `Searching… ${done} / ${total}`,
     canonFound: (n: number, of: number, byArtists: number) =>

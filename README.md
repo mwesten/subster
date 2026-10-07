@@ -62,7 +62,9 @@ No physical cards, no accounts, **no backend** — just your phone and your own 
 - ✅ **Curated canon**: a bundled, offline list of widely-famous songs (Billboard Year-End Hot 100
   1959–2024, German/Austrian/Swiss #1 singles, "greatest songs" critic lists — factual chart data,
   region-grouped in `src/metadata/curated.json`). Canon songs found in your library are boosted into
-  the deck regardless of Deezer play counts, which under-rate older or regional hits.
+  the deck regardless of Deezer play counts, which under-rate older or regional hits. A one-time
+  scan in the server settings finds all of them on your server up front (see
+  [Find the famous songs on your server](#find-the-famous-songs-on-your-server))
 - ✅ **Incremental deck**: the pool is ranked cheaply, then original years are resolved chunk by chunk —
   the first chunk lets play start; the rest fill in the background (Deezer/MusicBrainz calls are cached).
 - ✅ Core game: blind playback, timeline placement, reveal, win target (configurable)
@@ -233,6 +235,20 @@ Resolving a song hits Deezer (popularity) and MusicBrainz (original year, rate-l
 with an occasional Wikidata lookup for songs MusicBrainz can't cleanly date. The deck builds
 incrementally — a small first batch lets the game start quickly, then it tops up in the background.
 All lookups are cached in `localStorage`, so later games with the same library are fast.
+
+### Find the famous songs on your server
+
+Every deck mixes in songs from the bundled famous-songs list that are in your library. A game only
+searches as many of them as its deck needs, so without help the app learns your library's famous
+songs a few dozen per game, and the first games repeat more.
+
+**Server settings → Find famous songs on this server** searches the whole list once, and is
+recommended right after adding a server (the home screen shows a tip until it has run). It only
+searches songs by artists in your library and only contacts your own server. It ends with a summary
+such as *"562 of the 8064 bundled famous songs found (1018 by artists in your library)"*. On a home
+network it takes seconds; on mobile data it can take a few minutes, and it keeps running if you
+leave the screen. Run it again after adding music: each run searches everything afresh, which is
+also how songs added since are noticed.
 
 ## Android (install on a device via adb)
 

@@ -11,6 +11,7 @@ export const de: Dict = {
     serverSettings: 'Server-Einstellungen',
     footer: 'Musikalische Zeitreise · kein Backend · keine Karten',
     language: 'Sprache',
+    canonTip: 'Tipp: Einmal die bekannten Songs auf deinem Server suchen, für mehr Abwechslung →',
   },
   server: {
     title: 'Subsonic-Server verbinden',
@@ -35,6 +36,7 @@ export const de: Dict = {
     legacyAuth:
       'Dieser Server akzeptiert nur die Legacy-Authentifizierung — das Passwort wird direkt übertragen statt als Token — deshalb muss das Passwort selbst auf diesem Gerät gespeichert werden. Ein App-Passwort statt des Kontopassworts ist hier eine gute Idee.',
     legacyAuthSaved: 'Gespeichert — aber beachte, wie dieser Server dich anmeldet:',
+    done: 'Fertig',
     continueAnyway: 'Verstanden, weiter',
     saved: 'Gespeicherte Server',
     activeServer: 'aktiv',
@@ -43,6 +45,8 @@ export const de: Dict = {
     cachesCleared: (n: number) => `✓ ${n} Einträge gelöscht`,
     clearCachesHint:
       'Gespeicherte Deezer/MusicBrainz/Wikidata-Abfragen verfallen nie. Leere sie, wenn ein falsches Jahr oder Ranking an der Quelle korrigiert wurde — das nächste Deck holt alles frisch. Serververbindung und Einstellungen bleiben erhalten.',
+    canonTitle: 'Bekannte Songs',
+    canonRecommended: 'Empfohlen: bekannte Songs auf diesem Server suchen',
     findCanon: 'Bekannte Songs auf diesem Server suchen',
     findingCanon: (done: number, total: number) => `Suche… ${done} / ${total}`,
     canonFound: (n: number, of: number, byArtists: number) =>
