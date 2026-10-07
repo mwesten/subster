@@ -150,7 +150,7 @@ export const nl: Dict = {
     nextSong: 'Volgend nummer →',
     waitingForCards: 'Meer nummers laden…',
     seeResult: 'Uitslag bekijken →',
-    revealLine: (kind: RevealKind, name: string): string => {
+    revealLine: (kind, name) => {
       switch (kind) {
         case 'active-correct':
           return `${name} zat goed — behoudt de kaart`
