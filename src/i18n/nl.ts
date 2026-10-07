@@ -98,6 +98,7 @@ export const nl: Dict = {
     start: 'Start spel',
   },
   game: {
+    mysterySong: 'Geheim nummer',
     quit: 'Stoppen',
     backToQuit: 'Veeg nog een keer terug om het spel te verlaten.',
     tokens: (n: number) => `${n} munt${n === 1 ? '' : 'en'}`,

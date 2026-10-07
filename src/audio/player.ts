@@ -1,4 +1,5 @@
 import { MediaSession } from '@jofr/capacitor-media-session'
+import { getT } from '../i18n'
 
 /**
  * Thin wrapper around a single HTMLAudioElement, used only on the host/DJ
@@ -38,17 +39,24 @@ class AudioPlayer {
   }
 
   /**
-   * Register the media session (once). Metadata is deliberately generic —
-   * revealing the title/artist on the lock-screen notification would spoil the
-   * guess. Play/pause handlers wire the notification + hardware keys to us.
+   * Register the media session's handlers (once). Play/pause handlers wire the
+   * notification + hardware keys to us.
    */
   private setupMediaSession(): void {
-    // `artwork` must be present — the Android plugin NPEs on a null array.
-    void MediaSession.setMetadata({ title: 'Mystery song', artist: 'Subster', artwork: [] }).catch(
-      () => {},
-    )
     void MediaSession.setActionHandler({ action: 'play' }, () => this.resume()).catch(() => {})
     void MediaSession.setActionHandler({ action: 'pause' }, () => this.pause()).catch(() => {})
+  }
+
+  /**
+   * The notification's metadata. Deliberately generic — revealing the
+   * title/artist on the lock screen would spoil the guess. Set on every play,
+   * so it follows a language switch.
+   */
+  private setMetadata(): void {
+    // `artwork` must be present — the Android plugin NPEs on a null array.
+    void MediaSession.setMetadata({ title: getT().game.mysterySong, artist: 'Subster', artwork: [] }).catch(
+      () => {},
+    )
   }
 
   private setPlaybackState(state: 'playing' | 'paused' | 'none'): void {
@@ -93,6 +101,7 @@ class AudioPlayer {
   async play(url: string, startAt = 0, opts: { fadeInSeconds?: number } = {}): Promise<void> {
     const el = this.element()
     this.clearFade()
+    this.setMetadata()
     const fadeIn = opts.fadeInSeconds ?? 0
     const seekAndPlay = () => {
       try {
