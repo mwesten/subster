@@ -72,6 +72,8 @@ export const en = {
     metaOffline: 'Offline',
     metaOfflineHint: 'Only your server is contacted — file years are used as-is.',
     cardsToWin: 'Cards to win',
+    cardsFewer: 'Fewer cards',
+    cardsMore: 'More cards',
     difficulty: 'Difficulty',
     diffHits: 'Hits',
     diffHitsHint: 'Only very famous',
@@ -112,8 +114,9 @@ export const en = {
     backToSetup: 'Back to setup',
     noServer: 'No server configured.',
     deckNetworkError: 'Could not reach the server — check the address and your network.',
-    notEnoughSongs: (n: number) =>
-      `Only ${n} usable songs found. Try another library or an easier difficulty.`,
+    notEnoughSongs: (n: number) => `Only ${n} usable songs found. Try more or other libraries.`,
+    notEnoughRanked: (n: number, noDeezer: string, offline: string) =>
+      `Only ${n} songs passed the popularity filter. For a small or lesser-known library, try “${noDeezer}” or “${offline}”, or an easier difficulty.`,
     placePrompt: 'Where does it go on your timeline?',
     skip: 'Skip this song (1 token)',
     lockIn: 'Lock in placement',
@@ -175,6 +178,10 @@ export const en = {
     rematch: 'Rematch',
     playAgain: 'Play again',
     home: 'Home',
+    deckRanOut: 'The deck ran out before anyone reached the target.',
+    deckRanOutRanked: (noDeezer: string, offline: string) =>
+      `Only a few songs passed the popularity filter. For a small or lesser-known library, try “${noDeezer}” or “${offline}” in the game setup.`,
+    deckRanOutSmall: 'There are no more songs in your selection. Choose more libraries or fewer cards to win.',
   },
   /** Screen-reader-only labels (aria-label etc.). */
   a11y: {

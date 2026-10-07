@@ -90,6 +90,77 @@ npm run typecheck
 npm run build      # production build → dist/
 ```
 
+## Translations
+
+The UI is available in English and German. Corrections and new languages are very welcome as pull
+requests, and no coding experience is needed beyond editing a text file.
+
+All UI text lives in [`src/i18n/`](src/i18n), one file per language. [`en.ts`](src/i18n/en.ts) is
+the source of truth: every other language must contain exactly the same keys, and the build fails
+if one is missing.
+
+**Fix an existing translation:** edit the string in that language's file (e.g.
+[`de.ts`](src/i18n/de.ts)) and open a PR.
+
+**Add a language** (Dutch as the example):
+
+1. Copy `src/i18n/de.ts` to `src/i18n/nl.ts`, rename the export to `nl`, and translate the values.
+   Leave the keys (left of the colon) as they are. Some values are small functions, such as
+   `` playerN: (n: number) => `Player ${n}` `` — translate only the text inside the backticks and
+   keep `${…}` placeholders intact.
+2. Register it in [`src/i18n/index.ts`](src/i18n/index.ts): add `nl` to `LOCALES` and
+   `{ code: 'nl', label: 'Nederlands' }` to `LANGUAGES`. The code is the two-letter language code;
+   the app picks it automatically on devices set to that language.
+3. Run `npm run typecheck` to confirm nothing is missing. If you can't run it, open the PR anyway
+   and we'll check it.
+4. Optional: the store listing lives in `fastlane/metadata/android/<locale>/`
+   (`title.txt`, `short_description.txt`, `full_description.txt`).
+
+**Not comfortable with a PR?** Open an issue naming the language. We can draft a machine
+translation as a PR for you to review: a native speaker reading over a draft is quicker than
+translating from scratch, and catches what a machine gets wrong.
+
+## Adding a country's hit list
+
+Besides Deezer popularity, Subster knows which songs are famous from a bundled list in
+[`src/metadata/curated.json`](src/metadata/curated.json). Songs on it that are in your library are
+boosted into the deck, and in the offline modes the list is the only popularity signal there is. It
+holds an international core (`intl`: Billboard Year-End Hot 100 and songs on several "greatest
+songs" lists) plus the **#1 singles of each country** it covers, currently Germany (`de`), Austria
+(`at`) and Switzerland (`ch`). If hits from your country are missing, a PR adding it is welcome.
+
+**The format** is one object per country, keyed by its lowercase
+[ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) code, mapping each artist
+to their titles:
+
+```json
+{
+  "intl": { "…": ["…"] },
+  "nl": {
+    "Some Artist": ["Their First #1", "Their Second #1"],
+    "Another Artist feat. Guest": ["A Duet"]
+  }
+}
+```
+
+- Write artist and title as the chart lists them. Matching against your library ignores case,
+  punctuation, a leading "The", "feat." credits and suffixes such as "(Remastered)", so there is
+  no need to normalize them yourself.
+- Each title appears once per artist. A song that is also in another country's list is fine.
+- Watch for scraping debris: footnote markers (`[3]`) and songwriter credits that end up glued to
+  the title (`"Easy on MeAdele Atkins, Greg Kurstin"`). A title like that never matches.
+
+**Sources** must be plain chart facts, e.g. Wikipedia's "List of number-one singles in …" pages
+or the official chart archive for that country. Which song was #1 when is a fact, not anyone's
+creative work. Don't copy a curated "best of" list from a single publication, since that
+selection is somebody's own work.
+
+**Check it:** `npm test` confirms the file still parses and the existing matches still work.
+
+**Not comfortable with a PR?** Open an issue naming the country and, if you know one, a good
+source. We can put the list together as a PR for you to check against what you know of your
+country's charts.
+
 ## How it connects to Subsonic
 
 On first launch you enter your server URL, username, and password. Normally the password is **not
