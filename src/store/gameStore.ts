@@ -173,6 +173,18 @@ export const useGameStore = create<GameStore>((set, get) => {
     })
   }
 
+  // Leaving the placing phase (reveal, skip) during the countdown: the mystery
+  // song hasn't started yet, and the previous one is still fading out under
+  // the countdown. Start the right song now, or the reveal would keep the old
+  // one (or silence) playing.
+  const endCountdownEarly = () => {
+    const wasCounting = countdownTimer != null
+    clearCountdown()
+    set({ countdown: null, placeCountdown: null })
+    const song = get().game.turn.song
+    if (wasCounting && song) playSong(song)
+  }
+
   // Present the current mystery song: countdown then play, or play instantly.
   const beginTurn = () => {
     clearCountdown()
@@ -463,8 +475,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     skip() {
       // Reveal the skipped song (keep it playing, like a normal reveal); the
       // next song is drawn on NEXT_TURN.
-      clearCountdown()
-      set({ countdown: null, placeCountdown: null })
+      endCountdownEarly()
       audioPlayer.unwatch()
       transport?.dispatch({ type: 'SKIP' })
     },
@@ -482,8 +493,7 @@ export const useGameStore = create<GameStore>((set, get) => {
     },
 
     reveal() {
-      clearCountdown()
-      set({ countdown: null, placeCountdown: null })
+      endCountdownEarly()
       // Keep the song playing through the reveal (until "Next player"); just
       // stop the clip/lock timer so no timeout kicks in.
       audioPlayer.unwatch()
