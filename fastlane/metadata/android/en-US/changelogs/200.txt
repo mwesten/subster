@@ -1,0 +1,6 @@
+• Play from several libraries at once, e.g. Music + Soundtracks
+• Exclude artists, albums, songs or playlists, in the setup or right on the reveal. The list stays on your device
+• "Cards to win" can be typed (e.g. 20), plus −/+ buttons
+• Fixed: revealing during the countdown kept the previous song playing
+• When the deck runs out early, the app says why and what to change
+• 200+ German, Austrian and Swiss number ones are now found in your library

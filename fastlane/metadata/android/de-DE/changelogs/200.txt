@@ -1,0 +1,6 @@
+• Mehrere Bibliotheken gleichzeitig spielen, z. B. Musik + Soundtracks
+• Interpreten, Alben, Songs oder Playlists ausschließen, in den Spieleinstellungen oder beim Aufdecken. Die Liste bleibt auf dem Gerät
+• „Karten zum Sieg“ lässt sich eintippen (z. B. 20), dazu −/+-Tasten
+• Behoben: Beim Aufdecken im Countdown lief der vorige Song weiter
+• Geht der Stapel früh aus, sagt die App warum und was hilft
+• Über 200 Nummer-eins-Hits aus DE, AT und CH werden jetzt in deiner Bibliothek gefunden

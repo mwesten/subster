@@ -69,6 +69,9 @@ No physical cards, no accounts, **no backend** — just your phone and your own 
 - ✅ **Keep your discoveries**: the game keeps surfacing pearls you forgot you had — on the reveal,
   heart the song (server favorites, in sync with its starred state) or add it to any of your
   playlists straight from the card (duplicates are detected; tap again to remove)
+- ✅ **Exclusions**: keep artists, albums, songs or playlists out of the deck, picked in the game
+  setup or straight from the reveal (e.g. songs that upset someone at the table). The list stays on
+  the device, is never written to the server, and matches by name, so it works on every server
 - ✅ **Tokens & rules**: skip (1 token), **challenges** — other players bet a token on a different gap
   and steal the card if they're right (optional grace rule), **naming bonus** (+1 token for naming
   title + artist), equal-year placements count as correct
